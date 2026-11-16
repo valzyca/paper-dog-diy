@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <!--
   紙小狗 DIY 互動教學與 A4 展開圖產生器
-  目前版本：v1.9.0（2026-11-16）
+  目前版本：v1.9.2（2026-11-16）
   修改記錄（新到舊；每次修改請同步更新此處與下方 APP_VERSION / CHANGELOG）：
+  1.9.2  (2026-11-16)  預覽 8 頁展開圖：滑鼠移到哪一頁，就在畫面另一側放大顯示該頁（該頁並加藍框標示）
+  1.9.1  (2026-11-16)  金屬吊牌（銘牌）可選金色或銀色，切換後預覽、已放上的吊牌與列印頁一起變色
   1.9.0  (2026-11-16)  新增 7 個犬種：吉娃娃、八哥犬、馬爾濟斯、約克夏、黃金獵犬、拉布拉多、伯恩山犬（各有耳型、臉部花紋；約克夏鞍形灰藍、伯恩山黑白棕三色身體與白襪）；犬種選單改 5 欄並可捲動
   1.8.0  (2026-11-16)  犬種模板改為向右展開的圖示選單（頭像＋品種名稱）；新增版本記錄與標示
   1.7.0  (2026-11-16)  身體與四腿花色改為自然分布（兩張身體、四條腿、各區段花色皆不同，斑點不重疊）；黏貼處（藍色方塊、黃色折片、腳掌膠帶）不上花色；組裝步驟參考網路教學（腿貼片、身體配重、牽繩綁在上方穿繩洞、繩長依身高調整）；穿繩洞移到靠近背部
@@ -188,6 +190,10 @@
     .acc-tag { grid-column: 1 / -1; cursor: grab; }
     .acc-tag input { width: 90%; cursor: text; padding: 5px 8px; border: 2px solid #cbd5e1; border-radius: 6px; text-align: center; font-size: .9rem; }
     .acc-items { display: contents; }
+    .tag-opts { display: flex; gap: 8px; }
+    .metal-btn { display: flex; align-items: center; gap: 5px; padding: 3px 14px; border: 2px solid #cbd5e1; border-radius: 999px; background: #fff; font-weight: bold; font-size: .85rem; cursor: pointer; color: var(--text-main); }
+    .metal-btn i { width: 14px; height: 14px; border-radius: 50%; border: 1px solid #6b7280; display: inline-block; }
+    .metal-btn.on { border-color: var(--primary); background: #dbeafe; box-shadow: 0 0 0 2px rgba(59,130,246,.3); }
     .acc-item:hover { border-color: var(--primary); background: #eff6ff; }
     .acc-item svg { pointer-events: none; }
     .acc-btns { display: flex; gap: 8px; margin-top: 8px; }
@@ -205,6 +211,15 @@
     .sheet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; margin-top: 14px; }
     .a4 { background: #fff; border: 1px solid #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
     .a4 svg { display: block; width: 100%; height: auto; }
+    #print-sheet.preview .a4 { cursor: zoom-in; transition: box-shadow .15s, border-color .15s; }
+    #print-sheet.preview .a4:hover { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(59,130,246,.45); }
+    /* 滑鼠移到某一頁時，在畫面側邊顯示該頁的放大圖 */
+    #zoomView {
+      position: fixed; z-index: 200; pointer-events: none; background: #fff; border: 2px solid var(--primary);
+      border-radius: 6px; box-shadow: 0 12px 40px rgba(15,23,42,.45); display: none; overflow: hidden;
+    }
+    #zoomView svg { display: block; width: 100%; height: 100%; }
+    @media print { #zoomView { display: none !important; } }
 
     @page { size: A4; margin: 0; }
     @media print {
@@ -322,7 +337,11 @@
           <div class="acc-item acc-tag" id="accTagCell" data-type="tag" title="拖曳金屬吊牌到脖頸">
             <svg id="tagThumb" width="130" height="52" viewBox="-30 -15 60 30"></svg>
             <input type="text" id="dogName" class="name-input" maxlength="8" value="小白" placeholder="輸入狗狗名字（最多 8 字）" oninput="onNameInput()" />
-            <span>金屬吊牌：輸入名字後拖曳</span>
+            <div class="tag-opts" role="radiogroup" aria-label="銘牌顏色">
+              <button type="button" class="metal-btn" data-metal="silver" onclick="setTagMetal('silver')"><i style="background:#d1d5db"></i>銀</button>
+              <button type="button" class="metal-btn" data-metal="gold" onclick="setTagMetal('gold')"><i style="background:#facc15"></i>金</button>
+            </div>
+            <span>金屬吊牌：輸入名字、選金／銀後拖曳</span>
           </div>
           <div id="accItems" class="acc-items"></div>
         </div>
@@ -365,6 +384,7 @@
 </div>
 
 <!-- 8 頁 A4 實際大小展開圖（平時隱藏；按「預覽」可在畫面上檢視，列印時每頁一張 A4） -->
+<div id="zoomView" aria-hidden="true"></div>
 <section id="print-sheet">
   <div class="card preview-head">
     <h2 id="printTitle">我的紙小狗 － 8 頁 A4 實際大小展開圖</h2>
@@ -411,8 +431,10 @@
   };
 
   // 版本資訊：每次修改請遞增版本號並在 CHANGELOG 最前面新增一筆（同步更新檔案最上方的 HTML 註解）
-  const APP_VERSION = "1.9.0";
+  const APP_VERSION = "1.9.2";
   const CHANGELOG = [
+    { v: "1.9.2", date: "2026-11-16", note: "預覽 8 頁展開圖：滑鼠移到哪一頁，就在畫面另一側放大顯示該頁（該頁並加藍框標示）" },
+    { v: "1.9.1", date: "2026-11-16", note: "金屬吊牌（銘牌）可選金色或銀色，切換後預覽、已放上的吊牌與列印頁一起變色" },
     { v: "1.9.0", date: "2026-11-16", note: "新增 7 個犬種：吉娃娃、八哥犬、馬爾濟斯、約克夏、黃金獵犬、拉布拉多、伯恩山犬（各有耳型、臉部花紋；約克夏鞍形灰藍、伯恩山黑白棕三色身體與白襪）；犬種選單改 5 欄並可捲動" },
     { v: "1.8.0", date: "2026-11-16", note: "犬種模板改為向右展開的圖示選單（頭像＋品種名稱）；新增版本記錄與標示" },
     { v: "1.7.0", date: "2026-11-16", note: "身體與四腿花色改為自然分布（兩張身體、四條腿、各區段花色皆不同，斑點不重疊）；黏貼處（藍色方塊、黃色折片、腳掌膠帶）不上花色；組裝步驟參考網路教學（腿貼片、身體配重、牽繩綁在上方穿繩洞、繩長依身高調整）；穿繩洞移到靠近背部" },
@@ -440,12 +462,17 @@
     return { n, fs, w: Math.max(18, tw + 8) };
   }
   // 金屬吊牌（不使用漸層，避免重複 id 問題）：圓環＋銀色牌面＋高光＋名字
+  let tagMetal = "silver"; // 銘牌顏色：silver 銀 / gold 金（所有已放上的銘牌一起變色）
+  const TAG_COLORS = {
+    silver: { face: "#d1d5db", edge: "#6b7280", shine: "#ffffff", ink: "#334155" },
+    gold:   { face: "#facc15", edge: "#a16207", shine: "#fef9c3", ink: "#713f12" }
+  };
   function tagSVG(name) {
-    const m = tagMetrics(name), w = m.w;
-    return `<circle cx="0" cy="-8.5" r="2.6" fill="none" stroke="#6b7280" stroke-width="1"/>
-      <rect x="${-w / 2}" y="-6" width="${w}" height="12" rx="6" fill="#d1d5db" stroke="#6b7280" stroke-width="1"/>
-      <path d="M${-w / 2 + 5},-4.4 H${w / 2 - 5}" stroke="#ffffff" stroke-opacity="0.85" stroke-width="1" stroke-linecap="round"/>
-      <text x="0" y="${(m.fs * 0.36 + 0.6).toFixed(2)}" text-anchor="middle" font-size="${m.fs.toFixed(2)}" font-weight="bold" fill="#334155">${escHtml(m.n)}</text>`;
+    const m = tagMetrics(name), w = m.w, c = TAG_COLORS[tagMetal] || TAG_COLORS.silver;
+    return `<circle cx="0" cy="-8.5" r="2.6" fill="none" stroke="${c.edge}" stroke-width="1"/>
+      <rect x="${-w / 2}" y="-6" width="${w}" height="12" rx="6" fill="${c.face}" stroke="${c.edge}" stroke-width="1"/>
+      <path d="M${-w / 2 + 5},-4.4 H${w / 2 - 5}" stroke="${c.shine}" stroke-opacity="0.85" stroke-width="1" stroke-linecap="round"/>
+      <text x="0" y="${(m.fs * 0.36 + 0.6).toFixed(2)}" text-anchor="middle" font-size="${m.fs.toFixed(2)}" font-weight="bold" fill="${c.ink}">${escHtml(m.n)}</text>`;
   }
 
   // 配飾圖像庫：圖形皆以 (0,0) 為中心，座標單位與頭部 SVG 相同（viewBox 0 -30 100 132）
@@ -1321,6 +1348,12 @@
       </div>`).join("");
     updateTagThumb();
   }
+  function setTagMetal(m) {
+    tagMetal = m;
+    document.querySelectorAll(".metal-btn").forEach(b => { const on = b.dataset.metal === m; b.classList.toggle("on", on); b.setAttribute("aria-checked", String(on)); });
+    updateTagThumb();
+    updateAll();
+  }
   function onNameInput() {
     dogName = document.getElementById("dogName").value;
     updateTagThumb();
@@ -1332,7 +1365,7 @@
     const pal = document.getElementById("accPalette");
     renderPalette();
     pal.addEventListener("pointerdown", (e) => {
-      if (e.target.tagName === "INPUT") return;
+      if (e.target.tagName === "INPUT" || e.target.closest(".tag-opts")) return;
       const it = e.target.closest(".acc-item");
       if (it && e.button === 0) startDrag(e, { mode: "new", type: it.dataset.type });
     });
@@ -1391,6 +1424,24 @@
     document.addEventListener("keydown", e => { if (e.key === "Escape") toggleBreedFlyout(false); });
   }
 
+  // 預覽頁：滑鼠移到哪一頁，就在畫面另一側放大顯示該頁（僅滑鼠；放大圖不攔截滑鼠，不會閃爍）
+  function initPageZoom() {
+    const zv = document.getElementById("zoomView"), box = document.getElementById("printSvgContainer");
+    const hide = () => { zv.style.display = "none"; zv.innerHTML = ""; };
+    box.addEventListener("pointerover", e => {
+      const pg = e.target.closest && e.target.closest(".a4");
+      if (!pg || e.pointerType !== "mouse" || !document.getElementById("print-sheet").classList.contains("preview")) return;
+      const r = pg.getBoundingClientRect(), vw = window.innerWidth, vh = window.innerHeight;
+      const h = Math.min(vh - 24, 1000), w = h * 210 / 297;
+      if (w > vw - 24) return;
+      const onLeft = r.left + r.width / 2 > vw / 2;       // 縮圖在右半邊 → 放大圖放左邊，反之亦然
+      zv.style.cssText = `display:block;width:${w}px;height:${h}px;top:${(vh - h) / 2}px;left:${onLeft ? 12 : vw - w - 12}px`;
+      zv.innerHTML = pg.innerHTML;
+    });
+    box.addEventListener("pointerout", e => { const to = e.relatedTarget; if (!to || !(to.closest && to.closest(".a4"))) hide(); });
+    window.addEventListener("scroll", hide, { passive: true });
+  }
+
   // 版本標示與記錄
   function toggleChangelog(force) {
     const el = document.getElementById("changelog");
@@ -1405,6 +1456,8 @@
 
   // 初始化載入
   initVersion();
+  initPageZoom();
+  document.querySelectorAll(".metal-btn").forEach(b => b.classList.toggle("on", b.dataset.metal === tagMetal));
   initBreedPicker();
   initAccessoryUI();
   updateAll();
