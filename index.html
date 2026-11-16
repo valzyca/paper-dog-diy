@@ -94,6 +94,28 @@
     .btn-nav.primary { background: var(--primary); color: #fff; }
     .btn-nav:disabled { opacity: 0.4; cursor: not-allowed; }
 
+    /* ===== 配飾圖像庫與拖曳 ===== */
+    #miniPreview { display: flex; justify-content: center; touch-action: none; user-select: none; -webkit-user-select: none; }
+    #miniPreview .placed-acc { cursor: grab; }
+    #miniPreview .placed-acc:active { cursor: grabbing; }
+    .acc-hint { font-size: 0.8rem; color: var(--text-muted); line-height: 1.5; margin: 10px 0 6px; text-align: left; }
+    .acc-palette { display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; }
+    .acc-item {
+      background: #fff; border: 2px solid #cbd5e1; border-radius: 10px; padding: 6px 4px;
+      display: flex; flex-direction: column; align-items: center; gap: 2px;
+      cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
+      font-size: 0.78rem; font-weight: bold; color: var(--text-main);
+    }
+    .acc-item:hover { border-color: var(--primary); background: #eff6ff; }
+    .acc-item svg { pointer-events: none; }
+    .acc-btns { display: flex; gap: 8px; margin-top: 8px; }
+    .acc-btns button {
+      flex: 1; padding: 7px; border: none; border-radius: 8px; background: #e2e8f0;
+      font-weight: bold; font-size: 0.85rem; cursor: pointer; color: var(--text-main);
+    }
+    .acc-btns button:hover { background: #cbd5e1; }
+    .acc-ghost { position: fixed; transform: translate(-50%, -50%); pointer-events: none; z-index: 1000; opacity: 0.85; }
+
     /* ===== 列印用 8 頁 A4 實際大小展開圖 ===== */
     #print-sheet { display: none; }
     #print-sheet.preview { display: block; max-width: 1360px; margin: 0 auto 30px; padding: 0 16px; }
@@ -182,21 +204,20 @@
       </select>
     </div>
 
-    <div class="control-group">
-      <label for="accSelect">趣味配飾：</label>
-      <select id="accSelect" onchange="updateAll()">
-        <option value="none">無配飾（原味自然風）</option>
-        <option value="bowtie">紳士紅領結</option>
-        <option value="crown">金色小皇冠</option>
-        <option value="collar">藍色項圈 ＋ 金色鈴鐺</option>
-        <option value="glasses">酷炫黑框墨鏡</option>
-      </select>
-    </div>
-
-    <!-- 即時頭部預覽 -->
+    <!-- 即時頭部預覽 + 配飾圖像庫 -->
     <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px; border:1px solid #e2e8f0;">
-      <div style="font-size:0.85rem; color:#64748b; margin-bottom:4px;">即時造型預覽</div>
+      <div style="font-size:0.85rem; color:#64748b; margin-bottom:4px;">即時造型預覽（配飾可拖到臉上任何位置）</div>
       <div id="miniPreview"></div>
+
+      <div class="control-group" style="margin:12px 0 0; text-align:left;">
+        <label>趣味配飾（拖曳到上方臉部）：</label>
+        <div class="acc-palette" id="accPalette"></div>
+        <div class="acc-hint">同一款配飾可重複拖曳多個；已放上的配飾可再拖動調整位置，拖出預覽框或連點兩下即可刪除。</div>
+        <div class="acc-btns">
+          <button type="button" onclick="undoAcc()">↩ 復原上一個</button>
+          <button type="button" onclick="clearAcc()">🗑 清除全部</button>
+        </div>
+      </div>
     </div>
   </aside>
 
@@ -271,6 +292,23 @@
   const YEL = "#eab308", RED = "#ef4444", BLUE = "#38bdf8";
   let currentStep = 0;
   let uidCounter = 0; // 讓每個頭部 SVG 的 clipPath id 唯一
+
+  // 配飾圖像庫：圖形皆以 (0,0) 為中心，座標單位與頭部 SVG 相同（viewBox 0 -30 100 132）
+  const ACC_DEFS = {
+    bowtie:  { name: "紳士紅領結",   w: 30, h: 14, svg: `<polygon points="-14,-6 0,0 -14,6" fill="#ef4444"/><polygon points="14,-6 0,0 14,6" fill="#ef4444"/><circle r="3" fill="#b91c1c"/>` },
+    crown:   { name: "金色小皇冠",   w: 32, h: 16, svg: `<polygon points="-15,7 -10,-7 0,3 10,-7 15,7" fill="#facc15" stroke="#ca8a04" stroke-width="1.5"/>` },
+    collar:  { name: "藍項圈＋鈴鐺", w: 50, h: 20, svg: `<rect x="-24" y="-3.5" width="48" height="7" rx="3" fill="#2563eb"/><circle cx="0" cy="4.5" r="5" fill="#facc15" stroke="#b45309" stroke-width="1"/>` },
+    glasses: { name: "酷炫墨鏡",     w: 56, h: 16, svg: `<rect x="-27" y="-7" width="22" height="14" rx="3" fill="#0f172a" opacity="0.85"/><rect x="5" y="-7" width="22" height="14" rx="3" fill="#0f172a" opacity="0.85"/><line x1="-5" y1="0" x2="5" y2="0" stroke="#0f172a" stroke-width="3"/>` }
+  };
+  let placedAccs = [];   // [{id, type, x, y}]，座標為頭部 SVG 座標
+  let accSeq = 0;
+
+  function accGroup(a) {
+    const d = ACC_DEFS[a.type];
+    if (!d) return "";
+    return `<g class="placed-acc" data-id="${a.id}" transform="translate(${a.x},${a.y})">
+      <rect x="${-d.w / 2 - 2}" y="${-d.h / 2 - 2}" width="${d.w + 4}" height="${d.h + 4}" fill="transparent"/>${d.svg}</g>`;
+  }
 
   // 依底色亮度挑選文字顏色
   function inkOn(hex) {
@@ -415,7 +453,7 @@
       pattern: preset.pattern,
       eye: document.getElementById("eyeSelect").value,
       mouth: document.getElementById("mouthSelect").value,
-      acc: document.getElementById("accSelect").value
+      accs: placedAccs
     };
   }
 
@@ -523,19 +561,8 @@
       mouthSVG += `<line x1="43" y1="67" x2="57" y2="67" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>`;
     }
 
-    // 配飾
-    let accSVG = "";
-    if (cfg.acc === "bowtie") {
-      accSVG = `<polygon points="36,86 50,92 36,98" fill="#ef4444"/><polygon points="64,86 50,92 64,98" fill="#ef4444"/><circle cx="50" cy="92" r="3" fill="#b91c1c"/>`;
-    } else if (cfg.acc === "crown") {
-      accSVG = `<polygon points="35,14 40,0 50,10 60,0 65,14" fill="#facc15" stroke="#ca8a04" stroke-width="1.5"/>`;
-    } else if (cfg.acc === "collar") {
-      accSVG = `<rect x="26" y="84" width="48" height="7" rx="3" fill="#2563eb"/><circle cx="50" cy="92" r="5" fill="#facc15" stroke="#b45309" stroke-width="1"/>`;
-    } else if (cfg.acc === "glasses") {
-      accSVG = `<rect x="23" y="39" width="22" height="14" rx="3" fill="#0f172a" opacity="0.85"/>
-                <rect x="55" y="39" width="22" height="14" rx="3" fill="#0f172a" opacity="0.85"/>
-                <line x1="45" y1="45" x2="55" y2="45" stroke="#0f172a" stroke-width="3"/>`;
-    }
+    // 配飾（使用者拖曳放置，可重複、可在臉上任意位置）
+    const accSVG = (cfg.accs || []).map(accGroup).join("");
 
     return `
       <svg width="${w}" height="${h}" viewBox="0 -30 100 132">
@@ -680,7 +707,7 @@
   function updateAll() {
     const cfg = getConfig();
     renderStep(cfg);
-    document.getElementById("miniPreview").innerHTML = buildHeadSVG(cfg, 120, 120);
+    document.getElementById("miniPreview").innerHTML = buildHeadSVG(cfg, 220, 220);
     document.getElementById("printTitle").textContent = `我的「${cfg.breedName}」紙小狗 － 8 頁 A4 實際大小展開圖`;
     document.getElementById("printSvgContainer").innerHTML = buildPrintPages(cfg);
   }
@@ -708,7 +735,103 @@
     window.speechSynthesis.speak(utterance);
   }
 
+  // 8. 配飾拖曳（Pointer Events：滑鼠與觸控通用）
+  const clampN = (v, lo, hi) => Math.max(lo, Math.min(hi, v));
+
+  // 螢幕座標 → 頭部 SVG 座標
+  function pointInHead(cx, cy) {
+    const svg = document.querySelector("#miniPreview > svg");
+    if (!svg) return null;
+    const r = svg.getBoundingClientRect();
+    const m = svg.getScreenCTM();
+    if (!m) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = cx; pt.y = cy;
+    const p = pt.matrixTransform(m.inverse());
+    return {
+      x: clampN(p.x, 0, 100), y: clampN(p.y, -30, 102),
+      inside: cx >= r.left && cx <= r.right && cy >= r.top && cy <= r.bottom,
+      scale: r.height / 132
+    };
+  }
+
+  function startDrag(e, d) {
+    e.preventDefault();
+    const p0 = pointInHead(e.clientX, e.clientY);
+    if (d.mode === "new") {
+      const def = ACC_DEFS[d.type], sc = p0 ? p0.scale : 2;
+      d.ghost = document.createElement("div");
+      d.ghost.className = "acc-ghost";
+      d.ghost.innerHTML = `<svg width="${60 * sc}" height="${30 * sc}" viewBox="-30 -15 60 30">${def.svg}</svg>`;
+      d.ghost.style.left = e.clientX + "px";
+      d.ghost.style.top = e.clientY + "px";
+      document.body.appendChild(d.ghost);
+    } else if (p0) {
+      d.dx = d.acc.x - p0.x; d.dy = d.acc.y - p0.y;
+    }
+    const onMove = (ev) => {
+      if (d.mode === "new") {
+        d.ghost.style.left = ev.clientX + "px";
+        d.ghost.style.top = ev.clientY + "px";
+      } else {
+        const p = pointInHead(ev.clientX, ev.clientY);
+        if (!p) return;
+        d.acc.x = clampN(p.x + (d.dx || 0), 0, 100);
+        d.acc.y = clampN(p.y + (d.dy || 0), -30, 102);
+        d.group.setAttribute("transform", `translate(${d.acc.x},${d.acc.y})`);
+        d.group.style.opacity = p.inside ? 1 : 0.35; // 拖出預覽框 → 放開即刪除
+        d.outside = !p.inside;
+      }
+    };
+    const onUp = (ev) => {
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
+      if (d.mode === "new") {
+        d.ghost.remove();
+        const p = pointInHead(ev.clientX, ev.clientY);
+        if (p && p.inside) placedAccs.push({ id: ++accSeq, type: d.type, x: p.x, y: p.y });
+      } else if (d.outside) {
+        placedAccs = placedAccs.filter(a => a !== d.acc);
+      }
+      updateAll();
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
+  }
+
+  function undoAcc() { placedAccs.pop(); updateAll(); }
+  function clearAcc() { placedAccs = []; updateAll(); }
+
+  function initAccessoryUI() {
+    const pal = document.getElementById("accPalette");
+    pal.innerHTML = Object.keys(ACC_DEFS).map(k => `
+      <div class="acc-item" data-type="${k}" title="${ACC_DEFS[k].name}">
+        <svg width="64" height="32" viewBox="-30 -15 60 30">${ACC_DEFS[k].svg}</svg>
+        <span>${ACC_DEFS[k].name}</span>
+      </div>`).join("");
+    pal.addEventListener("pointerdown", (e) => {
+      const it = e.target.closest(".acc-item");
+      if (it && e.button === 0) startDrag(e, { mode: "new", type: it.dataset.type });
+    });
+    const prev = document.getElementById("miniPreview");
+    prev.addEventListener("pointerdown", (e) => {
+      const g = e.target.closest(".placed-acc");
+      if (!g || e.button !== 0) return;
+      const acc = placedAccs.find(a => String(a.id) === g.dataset.id);
+      if (acc) startDrag(e, { mode: "move", acc, group: g });
+    });
+    prev.addEventListener("dblclick", (e) => {
+      const g = e.target.closest(".placed-acc");
+      if (!g) return;
+      placedAccs = placedAccs.filter(a => String(a.id) !== g.dataset.id);
+      updateAll();
+    });
+  }
+
   // 初始化載入
+  initAccessoryUI();
   updateAll();
 </script>
 </body>
