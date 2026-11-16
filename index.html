@@ -1,4 +1,19 @@
 <!DOCTYPE html>
+<!--
+  紙小狗 DIY 互動教學與 A4 展開圖產生器
+  目前版本：v1.9.0（2026-11-16）
+  修改記錄（新到舊；每次修改請同步更新此處與下方 APP_VERSION / CHANGELOG）：
+  1.9.0  (2026-11-16)  新增 7 個犬種：吉娃娃、八哥犬、馬爾濟斯、約克夏、黃金獵犬、拉布拉多、伯恩山犬（各有耳型、臉部花紋；約克夏鞍形灰藍、伯恩山黑白棕三色身體與白襪）；犬種選單改 5 欄並可捲動
+  1.8.0  (2026-11-16)  犬種模板改為向右展開的圖示選單（頭像＋品種名稱）；新增版本記錄與標示
+  1.7.0  (2026-11-16)  身體與四腿花色改為自然分布（兩張身體、四條腿、各區段花色皆不同，斑點不重疊）；黏貼處（藍色方塊、黃色折片、腳掌膠帶）不上花色；組裝步驟參考網路教學（腿貼片、身體配重、牽繩綁在上方穿繩洞、繩長依身高調整）；穿繩洞移到靠近背部
+  1.6.0  (2026-11-16)  哈士奇依實拍照片調整：灰色頭罩、白額線、白眉點、深棕眼、張嘴吐舌大黑鼻、耳內淺粉白絨毛；身體鞍形灰色、腿大多留白
+  1.5.0  (2026-11-16)  金屬吊牌圖示與名字輸入欄合併；步驟圖改為立體視角（零件立體組裝）；主毛色／花紋色面板固定高度並顯示色碼；身體與四腿依犬種自動加上花色
+  1.4.0  (2026-11-15)  大麥町斑點更自然；王冠改為 3 個小尖；新增金屬吊牌（可輸入狗狗名字）；步驟說明與 8 頁展開圖零件一致
+  1.3.0  (2026-11-15)  趣味配飾以圖像顯示在預覽下方，可拖曳到臉上任意位置、可重複放置，可復原／清除
+  1.2.0  (2026-11-15)  依犬種繪製不同耳型（立耳／大立耳／垂耳／長垂耳／半立耳／折耳）；列印改為 8 頁實際大小 A4（頭、耳尾、身體×2、四腿×4）
+  1.1.0  (2026-11-15)  程式檢查與修正：speechSynthesis 防呆、列印溢出與 @page、花紋 clipPath、標籤對比度、錯字、色盤 oninput、重複步驟標題
+  1.0.0  (2026-11-15)  原始版本：犬種模板、客製化、步驟教學、A4 展開圖產生器
+-->
 <html lang="zh-Hant">
 <head>
   <meta charset="UTF-8" />
@@ -74,13 +89,13 @@
     .breed-caret { color: #64748b; font-size: .8rem; }
     .breed-thumb svg, .breed-card svg { display: block; }
     .breed-flyout {
-      position: absolute; left: calc(100% + 14px); top: -8px; z-index: 50; width: 560px;
+      position: absolute; left: calc(100% + 14px); top: -8px; z-index: 50; width: 690px; max-height: 82vh; overflow-y: auto;
       background: #fff; border: 2px solid var(--primary); border-radius: 14px; padding: 12px;
       box-shadow: 0 10px 30px rgba(15,23,42,.25);
-      display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
+      display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px;
     }
     .breed-flyout[hidden] { display: none; }
-    .breed-flyout::before {   /* 指向左側按鈕的小箭頭 */
+    .breed-flyout::before {   /* 指向左側按鈕的小箭頭（捲動時隨內容移動，僅裝飾） */
       content: ""; position: absolute; left: -9px; top: 22px; width: 14px; height: 14px; background: #fff;
       border-left: 2px solid var(--primary); border-bottom: 2px solid var(--primary); transform: rotate(45deg);
     }
@@ -101,6 +116,21 @@
     .color-row > div { flex: 1; }
 
     /* 色塊圖例說明 */
+    /* 版本標示與修改記錄 */
+    .ver-badge {
+      font-size: .72rem; font-weight: bold; color: #e2e8f0; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.35);
+      border-radius: 999px; padding: 2px 10px; margin-left: 8px; cursor: pointer; vertical-align: middle;
+    }
+    .ver-badge:hover { background: rgba(255,255,255,.28); }
+    .changelog { max-width: 1360px; margin: 14px auto 0; padding: 0 16px; }
+    .changelog[hidden] { display: none; }
+    .changelog .card h2 { display: flex; justify-content: space-between; align-items: center; }
+    .changelog button.close { border: none; background: #e2e8f0; border-radius: 8px; padding: 4px 12px; font-weight: bold; cursor: pointer; }
+    .changelog ol { margin: 0; padding-left: 0; list-style: none; }
+    .changelog li { display: grid; grid-template-columns: 70px 92px 1fr; gap: 8px; padding: 7px 0; border-bottom: 1px solid #f1f5f9; font-size: .88rem; line-height: 1.5; }
+    .changelog li:first-child { background: #eff6ff; border-radius: 6px; padding-left: 6px; }
+    .changelog .v { font-weight: bold; color: var(--primary); }
+    .changelog .d { color: #64748b; }
     .legend-box {
       display: flex; flex-wrap: wrap; gap: 10px; background: #f8fafc;
       padding: 10px; border-radius: 8px; margin-bottom: 14px; border: 1px solid #e2e8f0;
@@ -195,12 +225,18 @@
 <body>
 
 <header>
-  <h1>🐶 紙小狗 DIY 互動引導與 A4 展開圖產生器</h1>
+  <h1>🐶 紙小狗 DIY 互動引導與 A4 展開圖產生器 <button type="button" class="ver-badge" id="verBadge" onclick="toggleChangelog()" title="查看版本記錄"></button></h1>
   <div class="header-btns">
     <button class="btn-preview" id="previewBtn" onclick="togglePreview()">👁 預覽 8 頁展開圖</button>
     <button class="btn-print" onclick="window.print()">🖨️ 列印 8 頁 A4 展開圖</button>
   </div>
 </header>
+<div class="changelog" id="changelog" hidden>
+  <div class="card">
+    <h2><span>📜 版本記錄</span><button type="button" class="close" onclick="toggleChangelog(false)">關閉</button></h2>
+    <ol id="changelogList"></ol>
+  </div>
+</div>
 
 <div class="app-container">
   <!-- 左側：客製化選單 -->
@@ -229,6 +265,13 @@
         <option value="shiba">柴犬（立耳＋經典黃白）</option>
         <option value="poodle">貴賓犬（圓蓬頭＋泰迪棕）</option>
         <option value="corgi">柯基犬（大立耳＋短腿）</option>
+        <option value="chihuahua">吉娃娃（大立耳＋大眼睛）</option>
+        <option value="pug">八哥犬（黑面罩＋皺紋＋折耳）</option>
+        <option value="maltese">馬爾濟斯（純白長垂耳＋瀏海）</option>
+        <option value="yorkie">約克夏（金棕臉＋鋼藍灰頭頂）</option>
+        <option value="golden">黃金獵犬（金色＋垂耳）</option>
+        <option value="labrador">拉布拉多（奶油黃＋垂耳）</option>
+        <option value="bernese">伯恩山犬（黑白棕三色）</option>
         <option value="hachi">動漫風小八（藍白耳＋可愛臉）</option>
       </select>
     </div>
@@ -345,6 +388,13 @@
     shiba:        { name: "柴犬",       fur: "#f59e0b", accent: "#fef3c7", ear: "pointy", leg: "normal", pattern: "shibaMask", eye: "happy",     mouth: "smileBlush" },
     poodle:       { name: "貴賓犬",     fur: "#d97706", accent: "#b45309", ear: "floppy", leg: "normal", pattern: "none",      eye: "sparkle",   mouth: "tongue" },
     corgi:        { name: "柯基犬",     fur: "#ea580c", accent: "#ffffff", ear: "bigPointy",leg: "short", pattern: "shibaMask", eye: "happy",     mouth: "tongue" },
+    chihuahua:    { name: "吉娃娃",     fur: "#d9a766", accent: "#b9803c", ear: "bigPointy", leg: "normal", pattern: "none", eye: "sparkle", mouth: "smileBlush" },
+    pug:          { name: "八哥犬",     fur: "#e6c995", accent: "#3f3f46", ear: "folded", leg: "normal", pattern: "pugMask", eye: "sparkle", mouth: "tongue" },
+    maltese:      { name: "馬爾濟斯",   fur: "#ffffff", accent: "#efe6d8", ear: "longFlop", leg: "normal", pattern: "fringe", eye: "round", mouth: "smileBlush" },
+    yorkie:       { name: "約克夏",     fur: "#cf9a4e", accent: "#5b6b82", ear: "pointy", leg: "normal", pattern: "yorkie", eye: "round", mouth: "smileBlush" },
+    golden:       { name: "黃金獵犬",   fur: "#e3a73f", accent: "#c98a2b", ear: "floppy", leg: "normal", pattern: "none", eye: "round", mouth: "openSmile" },
+    labrador:     { name: "拉布拉多",   fur: "#f2dba5", accent: "#e1bd72", ear: "floppy", leg: "normal", pattern: "none", eye: "round", mouth: "openSmile" },
+    bernese:      { name: "伯恩山犬",   fur: "#27272a", accent: "#18181b", extra: "#b45309", ear: "floppy", leg: "normal", pattern: "bernese", eye: "huskyBrown", mouth: "openSmile" },
     hachi:        { name: "動漫風小八", fur: "#ffffff", accent: "#3b82f6", ear: "pointy", leg: "normal", pattern: "hachi",     eye: "sparkle",   mouth: "smileBlush" }
   };
 
@@ -359,6 +409,21 @@
     half:      { w: 43, h: 63,  d: "M0,63 L5.5,21 L21,0 L37.5,21 L43,63 Z", fold: "M5.5,21 L37.5,21" },
     folded:    { w: 42, h: 49,  d: "M0,49 L4,0 L42,35 Z", fold: "M4,0 L21,42" }
   };
+
+  // 版本資訊：每次修改請遞增版本號並在 CHANGELOG 最前面新增一筆（同步更新檔案最上方的 HTML 註解）
+  const APP_VERSION = "1.9.0";
+  const CHANGELOG = [
+    { v: "1.9.0", date: "2026-11-16", note: "新增 7 個犬種：吉娃娃、八哥犬、馬爾濟斯、約克夏、黃金獵犬、拉布拉多、伯恩山犬（各有耳型、臉部花紋；約克夏鞍形灰藍、伯恩山黑白棕三色身體與白襪）；犬種選單改 5 欄並可捲動" },
+    { v: "1.8.0", date: "2026-11-16", note: "犬種模板改為向右展開的圖示選單（頭像＋品種名稱）；新增版本記錄與標示" },
+    { v: "1.7.0", date: "2026-11-16", note: "身體與四腿花色改為自然分布（兩張身體、四條腿、各區段花色皆不同，斑點不重疊）；黏貼處（藍色方塊、黃色折片、腳掌膠帶）不上花色；組裝步驟參考網路教學（腿貼片、身體配重、牽繩綁在上方穿繩洞、繩長依身高調整）；穿繩洞移到靠近背部" },
+    { v: "1.6.0", date: "2026-11-16", note: "哈士奇依實拍照片調整：灰色頭罩、白額線、白眉點、深棕眼、張嘴吐舌大黑鼻、耳內淺粉白絨毛；身體鞍形灰色、腿大多留白" },
+    { v: "1.5.0", date: "2026-11-16", note: "金屬吊牌圖示與名字輸入欄合併；步驟圖改為立體視角（零件立體組裝）；主毛色／花紋色面板固定高度並顯示色碼；身體與四腿依犬種自動加上花色" },
+    { v: "1.4.0", date: "2026-11-15", note: "大麥町斑點更自然；王冠改為 3 個小尖；新增金屬吊牌（可輸入狗狗名字）；步驟說明與 8 頁展開圖零件一致" },
+    { v: "1.3.0", date: "2026-11-15", note: "趣味配飾以圖像顯示在預覽下方，可拖曳到臉上任意位置、可重複放置，可復原／清除" },
+    { v: "1.2.0", date: "2026-11-15", note: "依犬種繪製不同耳型（立耳／大立耳／垂耳／長垂耳／半立耳／折耳）；列印改為 8 頁實際大小 A4（頭、耳尾、身體×2、四腿×4）" },
+    { v: "1.1.0", date: "2026-11-15", note: "程式檢查與修正：speechSynthesis 防呆、列印溢出與 @page、花紋 clipPath、標籤對比度、錯字、色盤 oninput、重複步驟標題" },
+    { v: "1.0.0", date: "2026-11-15", note: "原始版本：犬種模板、客製化、步驟教學、A4 展開圖產生器" }
+  ];
 
   const YEL = "#eab308", RED = "#ef4444", BLUE = "#38bdf8";
   let currentStep = 0;
@@ -731,6 +796,7 @@
       ear: preset.ear,
       leg: preset.leg,
       pattern: preset.pattern,
+      extra: preset.extra,
       eye: document.getElementById("eyeSelect").value,
       mouth: document.getElementById("mouthSelect").value,
       accs: placedAccs
@@ -804,6 +870,26 @@
                     <ellipse cx="33" cy="35" rx="6" ry="3.6" transform="rotate(-12 33 35)" fill="#ffffff"/>`;
       patternSVG = half + `<g transform="translate(100,0) scale(-1,1)">${half}</g>
         <path d="M44,9 L56,9 L54,24 L50,35 L46,24 Z" fill="#ffffff"/>`;
+    } else if (cfg.pattern === "pugMask") {
+      // 八哥：深色面罩（口鼻＋眼周）與額頭皺紋
+      patternSVG = `<ellipse cx="50" cy="68" rx="27" ry="21" fill="${A}"/>
+        <ellipse cx="34" cy="46" rx="10" ry="9" fill="${A}"/><ellipse cx="66" cy="46" rx="10" ry="9" fill="${A}"/>
+        <path d="M37,26 Q50,21 63,26 M40,32 Q50,28 60,32" fill="none" stroke="${A}" stroke-width="2.2" stroke-linecap="round" opacity="0.75"/>`;
+    } else if (cfg.pattern === "fringe") {
+      // 馬爾濟斯：垂在額前的長瀏海與兩頰絲狀長毛
+      patternSVG = `<path d="M15,12 L85,12 L85,32 Q77,43 69,33 Q60,45 50,34 Q40,45 31,33 Q23,43 15,32 Z" fill="${A}"/>
+        <path d="M15,40 Q12,62 19,80 L24,50 Z M85,40 Q88,62 81,80 L76,50 Z" fill="${A}"/>`;
+    } else if (cfg.pattern === "yorkie") {
+      // 約克夏：鋼藍灰頭頂，臉與口鼻為金棕色
+      patternSVG = `<path d="M15,12 L85,12 L85,33 Q72,42 62,32 Q50,40 38,32 Q28,42 15,33 Z" fill="${A}"/>
+        <ellipse cx="50" cy="70" rx="17" ry="12" fill="#ffffff" fill-opacity="0.25"/>`;
+    } else if (cfg.pattern === "bernese") {
+      // 伯恩山：黑色頭部、白色額線與口鼻、棕色眉點與臉頰
+      const E = cfg.extra || "#b45309";
+      patternSVG = `<ellipse cx="22" cy="63" rx="10" ry="15" fill="${E}"/><ellipse cx="78" cy="63" rx="10" ry="15" fill="${E}"/>
+        <ellipse cx="33" cy="36" rx="6.5" ry="3.6" fill="${E}"/><ellipse cx="67" cy="36" rx="6.5" ry="3.6" fill="${E}"/>
+        <path d="M45,10 L55,10 L54,28 Q53,44 58,54 L50,60 L42,54 Q47,44 46,28 Z" fill="#ffffff"/>
+        <ellipse cx="50" cy="70" rx="20" ry="15" fill="#ffffff"/>`;
     } else if (cfg.pattern === "shibaMask") {
       patternSVG = `
         <ellipse cx="50" cy="66" rx="32" ry="22" fill="${A}"/>`;
@@ -888,7 +974,7 @@
         <svg viewBox="0 0 210 297" xmlns="http://www.w3.org/2000/svg">
           <text x="105" y="11" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#0f172a">${title}</text>
           ${inner}
-          <text x="105" y="293.5" text-anchor="middle" font-size="2.8" fill="#475569">第 ${n} / 8 頁｜實線＝剪下　紅虛線＝剪開　黃虛線＝摺線　藍色＝貼膠帶｜請以 100% 實際大小列印</text>
+          <text x="105" y="293.5" text-anchor="middle" font-size="2.8" fill="#475569">第 ${n} / 8 頁｜實線＝剪下　紅虛線＝剪開　黃虛線＝摺線　藍色＝貼膠帶｜請以 100% 實際大小列印｜v${APP_VERSION}</text>
         </svg>
       </section>`;
   }
@@ -950,6 +1036,8 @@
       case "stbernard": s = blobSet(6, L, 62, 14, 26, 10, 18, 5 + sd * 977, A, noGlue); break;
       case "huskyMask": s = `<path d="${wavyTop(0, L, 52, 6, 6 + sd * 31)}" fill="${A}"/>`; break;
       case "shibaMask": s = `<path d="${wavyBottom(0, L, 68, 4, 8 + sd * 31, H)}" fill="${A}"/>`; break;
+      case "yorkie":    s = `<path d="${wavyTop(L * 0.1, L, 56, 6, 14 + sd * 31)}" fill="${A}"/>`; break;
+      case "bernese":   s = `<path d="${wavyBottom(0, L, 78, 3, 15 + sd * 31, H)}" fill="${cfg.extra || "#b45309"}"/><ellipse cx="${L * 0.06}" cy="62" rx="26" ry="26" fill="#ffffff"/>`; break;
       case "hachi":     s = `<ellipse cx="${L * 0.38}" cy="28" rx="26" ry="18" fill="${A}"/><ellipse cx="${L * 0.72}" cy="52" rx="22" ry="12" fill="${A}"/>`; break;
       default: return "";
     }
@@ -970,6 +1058,8 @@
       case "stbernard": s = blobSet(2, q, len * 0.6, 10, 16, 8, 14, 9 + sd * 977, A, noGlue); break;
       case "huskyMask": s = `<path d="${wavyTop(0, q, len * 0.2, 4, 6 + sd * 31)}" fill="${A}"/>`; break;
       case "shibaMask": s = `<path d="${wavyBottom(0, q, len * 0.66, 4, 8 + sd * 31, len)}" fill="${A}"/>`; break;
+      case "yorkie":    s = `<path d="${wavyTop(0, q, len * 0.12, 3, 16 + sd * 31)}" fill="${A}"/>`; break;
+      case "bernese":   s = `<path d="${wavyBottom(0, q, len * 0.9, 3, 17 + sd * 31, len)}" fill="#ffffff"/>`; break;
       default: return "";
     }
     // 折片（黃色）與腳掌膠帶區不留花色
@@ -1264,7 +1354,7 @@
   // 犬種選擇器（向右展開的圖示選單）
   function breedCfg(k) {
     const p = BREED_PRESETS[k];
-    return { breedKey: k, breedName: p.name, fur: p.fur, accent: p.accent, ear: p.ear, leg: p.leg, pattern: p.pattern, eye: p.eye, mouth: p.mouth, accs: [] };
+    return { breedKey: k, breedName: p.name, fur: p.fur, accent: p.accent, ear: p.ear, leg: p.leg, pattern: p.pattern, extra: p.extra, eye: p.eye, mouth: p.mouth, accs: [] };
   }
   function breedIcon(k, w) { return buildHeadSVG(breedCfg(k), w, Math.round(w * 1.32)); }
   function renderBreedFlyout() {
@@ -1301,7 +1391,20 @@
     document.addEventListener("keydown", e => { if (e.key === "Escape") toggleBreedFlyout(false); });
   }
 
+  // 版本標示與記錄
+  function toggleChangelog(force) {
+    const el = document.getElementById("changelog");
+    el.hidden = force === undefined ? !el.hidden : !force;
+    if (!el.hidden && el.scrollIntoView) el.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+  function initVersion() {
+    document.getElementById("verBadge").textContent = "v" + APP_VERSION;
+    document.getElementById("changelogList").innerHTML = CHANGELOG.map(c =>
+      `<li><span class="v">v${c.v}</span><span class="d">${c.date}</span><span>${escHtml(c.note)}</span></li>`).join("");
+  }
+
   // 初始化載入
+  initVersion();
   initBreedPicker();
   initAccessoryUI();
   updateAll();
