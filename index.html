@@ -54,9 +54,15 @@
     /* 左側客製化選單 */
     .control-group { margin-bottom: 14px; }
     .control-group label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.92rem; }
-    select, input[type="color"] {
-      width: 100%; padding: 8px 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem;
+    select { width: 100%; padding: 8px 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem; }
+    input[type="color"] {
+      -webkit-appearance: none; appearance: none; display: block; box-sizing: border-box;
+      width: 100%; height: 44px; padding: 3px; border: 2px solid #cbd5e1; border-radius: 8px; background: #fff; cursor: pointer;
     }
+    input[type="color"]::-webkit-color-swatch-wrapper { padding: 0; }
+    input[type="color"]::-webkit-color-swatch { border: none; border-radius: 5px; }
+    input[type="color"]::-moz-color-swatch { border: none; border-radius: 5px; }
+    .hexlab { font-family: monospace; font-size: 0.8rem; color: #64748b; margin-top: 3px; }
     .color-row { display: flex; gap: 10px; }
     .color-row > div { flex: 1; }
 
@@ -115,6 +121,9 @@
       cursor: grab; touch-action: none; user-select: none; -webkit-user-select: none;
       font-size: 0.78rem; font-weight: bold; color: var(--text-main);
     }
+    .acc-tag { grid-column: 1 / -1; cursor: grab; }
+    .acc-tag input { width: 90%; cursor: text; padding: 5px 8px; border: 2px solid #cbd5e1; border-radius: 6px; text-align: center; font-size: .9rem; }
+    .acc-items { display: contents; }
     .acc-item:hover { border-color: var(--primary); background: #eff6ff; }
     .acc-item svg { pointer-events: none; }
     .acc-btns { display: flex; gap: 8px; margin-top: 8px; }
@@ -186,10 +195,12 @@
       <div>
         <label for="furColor">主毛色：</label>
         <input type="color" id="furColor" value="#ffffff" oninput="updateAll()" />
+        <div class="hexlab" id="furHex">#ffffff</div>
       </div>
       <div>
         <label for="accentColor">花紋 / 耳朵色：</label>
         <input type="color" id="accentColor" value="#1e293b" oninput="updateAll()" />
+        <div class="hexlab" id="accentHex">#1e293b</div>
       </div>
     </div>
 
@@ -219,10 +230,15 @@
       <div id="miniPreview"></div>
 
       <div class="control-group" style="margin:12px 0 0; text-align:left;">
-        <label for="dogName">金屬吊牌上的狗狗名字：</label>
-        <input type="text" id="dogName" class="name-input" maxlength="8" value="小白" placeholder="輸入名字（最多 8 字）" oninput="onNameInput()" />
         <label>趣味配飾（拖曳到上方臉部）：</label>
-        <div class="acc-palette" id="accPalette"></div>
+        <div class="acc-palette" id="accPalette">
+          <div class="acc-item acc-tag" id="accTagCell" data-type="tag" title="拖曳金屬吊牌到脖頸">
+            <svg id="tagThumb" width="130" height="52" viewBox="-30 -15 60 30"></svg>
+            <input type="text" id="dogName" class="name-input" maxlength="8" value="小白" placeholder="輸入狗狗名字（最多 8 字）" oninput="onNameInput()" />
+            <span>金屬吊牌：輸入名字後拖曳</span>
+          </div>
+          <div id="accItems" class="acc-items"></div>
+        </div>
         <div class="acc-hint">同一款配飾可重複拖曳多個；已放上的配飾可再拖動調整位置，拖出預覽框或連點兩下即可刪除。</div>
         <div class="acc-btns">
           <button type="button" onclick="undoAcc()">↩ 復原上一個</button>
@@ -292,12 +308,12 @@
   //   d    = 外輪廓（實線剪下）
   //   fold = 摺線（黃色虛線，可省略）
   const EAR_SPECS = {
-    pointy:    { w: 60, h: 90,  d: "M0,90 L30,0 L60,90 Z" },
-    bigPointy: { w: 70, h: 115, d: "M0,115 L35,0 L70,115 Z" },
-    floppy:    { w: 60, h: 95,  d: "M12,0 Q60,0 60,55 Q58,95 30,95 Q0,90 0,40 Q0,4 12,0 Z" },
-    longFlop:  { w: 52, h: 140, d: "M26,0 Q52,0 52,70 Q50,140 26,140 Q2,140 0,70 Q0,0 26,0 Z" },
-    half:      { w: 62, h: 90,  d: "M0,90 L8,30 L30,0 L54,30 L62,90 Z", fold: "M8,30 L54,30" },
-    folded:    { w: 60, h: 70,  d: "M0,70 L6,0 L60,50 Z", fold: "M6,0 L30,60" }
+    pointy:    { w: 42, h: 63,  d: "M0,63 L21,0 L42,63 Z" },
+    bigPointy: { w: 49, h: 80,  d: "M0,80 L24.5,0 L49,80 Z" },
+    floppy:    { w: 42, h: 66,  d: "M8,0 Q42,0 42,38 Q41,66 21,66 Q0,63 0,28 Q0,3 8,0 Z" },
+    longFlop:  { w: 36, h: 96,  d: "M18,0 Q36,0 36,48 Q35,96 18,96 Q1,96 0,48 Q0,0 18,0 Z" },
+    half:      { w: 43, h: 63,  d: "M0,63 L5.5,21 L21,0 L37.5,21 L43,63 Z", fold: "M5.5,21 L37.5,21" },
+    folded:    { w: 42, h: 49,  d: "M0,49 L4,0 L42,35 Z", fold: "M4,0 L21,42" }
   };
 
   const YEL = "#eab308", RED = "#ef4444", BLUE = "#38bdf8";
@@ -349,118 +365,263 @@
     return lum > 0.6 ? "#0f172a" : "#ffffff";
   }
 
-  // 2. 教學步驟資料：每一步的示意圖都直接引用「8 頁展開圖」的實際零件
-  //    （左：印出來的紙 → 右：剪、摺、貼之後的樣子），說明文字與圖面名稱一致。
+  // 2. 教學步驟資料：每一步都用「立體視角」畫出零件與組裝；
+  //    左側縮圖＝8 頁展開圖中對應的那一頁，右側＝剪、摺、貼之後的立體零件，說明文字與圖面名稱一致。
+
+  // ===== 簡易 3D 引擎（平行投影；依加入順序繪製，每個零件只畫朝向鏡頭的面）=====
+  const v3 = {
+    add: (a, b) => [a[0] + b[0], a[1] + b[1], a[2] + b[2]],
+    sc: (a, k) => [a[0] * k, a[1] * k, a[2] * k],
+    dot: (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2],
+    cross: (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]]
+  };
+  function shadeHex(hex, f) {
+    const h = String(hex).replace("#", "");
+    const c = [0, 2, 4].map(i => parseInt(h.substr(i, 2), 16));
+    const o = c.map(v => f <= 1 ? v * f : v + (255 - v) * (f - 1));
+    return "#" + o.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, "0")).join("");
+  }
+  // 把 SVG 路徑（M L Q Z）攤平成點列
+  function flattenPath(d) {
+    const t = d.match(/[MLQZ]|-?\d*\.?\d+/g), pts = [];
+    let i = 0, cmd = "", cur = [0, 0];
+    while (i < t.length) {
+      if (/[MLQZ]/.test(t[i])) { cmd = t[i++]; if (cmd === "Z") continue; }
+      if (cmd === "M" || cmd === "L") { cur = [+t[i], +t[i + 1]]; i += 2; pts.push(cur); }
+      else if (cmd === "Q") {
+        const c = [+t[i], +t[i + 1]], e = [+t[i + 2], +t[i + 3]]; i += 4;
+        for (let k = 1; k <= 8; k++) { const s = k / 8, u = 1 - s; pts.push([u * u * cur[0] + 2 * u * s * c[0] + s * s * e[0], u * u * cur[1] + 2 * u * s * c[1] + s * s * e[1]]); }
+        cur = e;
+      }
+    }
+    const a = pts[0], b = pts[pts.length - 1];
+    if (a && b && Math.abs(a[0] - b[0]) < 1e-6 && Math.abs(a[1] - b[1]) < 1e-6) pts.pop();
+    return pts;
+  }
+  function rectPoly(x, y, w, h) { return [[x, y], [x + w, y], [x + w, y + h], [x, y + h]]; }
+  function roundRectPoly(w, h, r) {
+    const p = [];
+    const arc = (cx, cy, a0) => { for (let k = 0; k <= 6; k++) { const a = (a0 + 90 * k / 6) * Math.PI / 180; p.push([cx + r * Math.cos(a), cy + r * Math.sin(a)]); } };
+    arc(w - r, h - r, 0); arc(r, h - r, 90); arc(r, r, 180); arc(w - r, r, 270);
+    return p;
+  }
+  // 腿條：上端平口、下端半圓腳掌（y 向上，底部在 y=0）
+  function stripPoly(w, len) {
+    const r = w / 2, p = [[0, len]];
+    for (let k = 0; k <= 12; k++) { const a = (180 + 180 * k / 12) * Math.PI / 180; p.push([r + r * Math.cos(a), r + r * Math.sin(a)]); }
+    p.push([w, len]);
+    return p;
+  }
+
+  function makeScene(yaw, pitch) {
+    const th = yaw * Math.PI / 180, ph = pitch * Math.PI / 180;
+    const ct = Math.cos(th), st = Math.sin(th), cp = Math.cos(ph), sp = Math.sin(ph);
+    // 世界座標：x＝身體長度（前→後）、y＝向上、z＝身體厚度方向（朝鏡頭為 +）
+    const R = v => { const x1 = v[0] * ct + v[2] * st, z1 = -v[0] * st + v[2] * ct; return [x1, -(v[1] * cp - z1 * sp), v[1] * sp + z1 * cp]; };
+    const LIGHT = (() => { const l = [-0.45, 0.85, 0.55], n = Math.hypot(l[0], l[1], l[2]); return l.map(x => x / n); })();
+    const out = [], bb = { x0: 1e9, y0: 1e9, x1: -1e9, y1: -1e9 };
+    const proj = p => { const s = R(p); bb.x0 = Math.min(bb.x0, s[0]); bb.y0 = Math.min(bb.y0, s[1]); bb.x1 = Math.max(bb.x1, s[0]); bb.y1 = Math.max(bb.y1, s[1]); return s; };
+    const fmt = s => s[0].toFixed(2) + "," + s[1].toFixed(2);
+    const DEF = { o: [0, 0, 0], ux: [1, 0, 0], uy: [0, 1, 0] };
+    const api = {
+      // poly：平面座標（y 向上, mm）；frame：{o, ux, uy}（uz = ux × uy 為擠出方向）
+      prism(poly, o) {
+        const fr = o.frame || DEF, ux = fr.ux, uy = fr.uy, uz = v3.cross(ux, uy), depth = o.depth || 2;
+        let pts = poly.slice(), area = 0;
+        for (let i = 0; i < pts.length; i++) { const a = pts[i], b = pts[(i + 1) % pts.length]; area += a[0] * b[1] - b[0] * a[1]; }
+        if (area < 0) pts.reverse();
+        const P = (p, z) => v3.add(v3.add(v3.add(fr.o, v3.sc(ux, p[0])), v3.sc(uy, p[1])), v3.sc(uz, z));
+        const stroke = o.stroke || "#475569", sw = o.sw || 0.5, faces = [];
+        const addFace = (arr, f, n) => {
+          const key = arr.reduce((s, p) => s + R(p)[2], 0) / arr.length;
+          const k = 0.70 + 0.36 * Math.max(0, v3.dot(n, LIGHT));
+          faces.push({ key, svg: `<polygon points="${arr.map(p => fmt(proj(p))).join(" ")}" fill="${shadeHex(f, k)}" stroke="${stroke}" stroke-width="${sw}" stroke-linejoin="round"/>` });
+          return faces[faces.length - 1];
+        };
+        for (let i = 0; i < pts.length; i++) {
+          const a = pts[i], b = pts[(i + 1) % pts.length], dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy);
+          if (len < 1e-6) continue;
+          const n2 = [dy / len, -dx / len], nw = v3.add(v3.sc(ux, n2[0]), v3.sc(uy, n2[1]));
+          if (R(nw)[2] <= 1e-4) continue;
+          addFace([P(a, 0), P(b, 0), P(b, depth), P(a, depth)], (o.edgeFill && o.edgeFill(n2[0], n2[1])) || o.fill, nw);
+        }
+        if (R(uz)[2] > 1e-4) {
+          const f = addFace(pts.map(p => P(p, depth)), o.fill, uz);
+          if (o.decal) {
+            const org = o.dorg || [0, o.H], p0 = R(P(org, depth)), vx = R(ux), vy = R(uy);
+            f.svg += `<g transform="matrix(${vx[0].toFixed(4)} ${vx[1].toFixed(4)} ${(-vy[0]).toFixed(4)} ${(-vy[1]).toFixed(4)} ${p0[0].toFixed(3)} ${p0[1].toFixed(3)})">${o.decal}</g>`;
+          }
+        }
+        const nb = v3.sc(uz, -1);
+        if (R(nb)[2] > 1e-4) addFace(pts.map(p => P(p, 0)), o.fill, nb);
+        faces.sort((a, b) => a.key - b.key).forEach(f => out.push(f.svg));
+      },
+      include(fr, x, y) { proj(v3.add(v3.add(fr.o, v3.sc(fr.ux, x)), v3.sc(fr.uy, y))); },
+      line(pts, color, w, dashArr) {
+        out.push(`<polyline points="${pts.map(p => fmt(proj(p))).join(" ")}" fill="none" stroke="${color}" stroke-width="${w}" ${dashArr ? `stroke-dasharray="${dashArr}"` : ""} stroke-linecap="round" stroke-linejoin="round"/>`);
+      },
+      dot(p, r, fill) { const s = proj(p); out.push(`<circle cx="${s[0].toFixed(2)}" cy="${s[1].toFixed(2)}" r="${r}" fill="${fill}"/>`); },
+      text(p, str, size, color) {
+        const s = proj(p);
+        out.push(`<text x="${s[0].toFixed(2)}" y="${s[1].toFixed(2)}" text-anchor="middle" font-size="${size}" font-weight="bold" fill="${color}" paint-order="stroke" stroke="#fff" stroke-width="2.2">${str}</text>`);
+      },
+      svg(height) {
+        const m = 10, w = bb.x1 - bb.x0 + 2 * m, h = bb.y1 - bb.y0 + 2 * m;
+        return `<svg viewBox="${(bb.x0 - m).toFixed(1)} ${(bb.y0 - m).toFixed(1)} ${w.toFixed(1)} ${h.toFixed(1)}" height="${height}" width="${(height * w / h).toFixed(0)}">${out.join("")}</svg>`;
+      }
+    };
+    return api;
+  }
+
+  // ===== 共用尺寸 =====
+  function dims(cfg) {
+    const g = bodyGeom(cfg), legLen = legLenOf(cfg);
+    return { g, legLen, stemLen: legLen - 36, q: 48.5, r: 24.25, BH: 97 };
+  }
+  const HEAD_W = 84, HEAD_H = 90;
+  function earPlacement(cfg) {
+    const sp = EAR_SPECS[cfg.ear] || EAR_SPECS.floppy;
+    const base = flattenPath(sp.d).map(p => [p[0], sp.h - p[1]]);
+    const mk = (mirror, x, y) => base.map(p => [x + (mirror ? sp.w - p[0] : p[0]), y + p[1]]);
+    if (cfg.ear === "floppy" || cfg.ear === "longFlop") {
+      const y = HEAD_H - 8 - sp.h;
+      return [mk(false, -sp.w * 0.45, y), mk(true, HEAD_W - sp.w * 0.55, y)];
+    }
+    const y = HEAD_H - 12;
+    return [mk(false, HEAD_W * 0.06, y), mk(true, HEAD_W - HEAD_W * 0.06 - sp.w, y)];
+  }
+  const LEAF = () => flattenPath("M18.5,80 Q-18.5,40 18.5,0 Q55.5,40 18.5,80 Z");
+  const topYellow = (nx, ny) => ny > 0.9 ? "#fde047" : null;
+
+  // 頭（臉板＋背面的耳朵），frame 決定頭在世界中的位置與朝向
+  function addHead(S, cfg, fr, withEars) {
+    const uz = v3.cross(fr.ux, fr.uy);
+    if (withEars) {
+      const efr = { o: v3.add(fr.o, v3.sc(uz, -2)), ux: fr.ux, uy: fr.uy };
+      earPlacement(cfg).forEach(poly => S.prism(poly, { depth: 1.8, fill: cfg.accent, frame: efr }));
+    }
+    S.prism(roundRectPoly(HEAD_W, HEAD_H, 26.4), {
+      depth: 2, fill: cfg.fur, frame: fr, H: HEAD_H,
+      decal: `<g transform="translate(-18,-50.4)">${buildHeadSVG(cfg, 120, 158.4, { noEars: true, sw: 1.8 })}</g>`
+    });
+    [[-22, -22], [HEAD_W + 22, -22], [HEAD_W + 22, HEAD_H + 26], [-22, HEAD_H + 26]].forEach(c => S.include(fr, c[0], c[1]));
+  }
+
+  // 身體側面的貼圖：花色＋穿繩洞＋腿的黏貼位置（藍色方塊）
+  function bodyDecal(cfg) {
+    const g = bodyGeom(cfg), my = 97 - 24.25;
+    const mark = (u, label) => `<rect x="${u}" y="${my}" width="${g.markH}" height="24.25" fill="${BLUE}" fill-opacity="0.45" stroke="#0284c7" stroke-width="0.8" stroke-dasharray="3,2"/>
+      <text x="${u + g.markH / 2}" y="${my + 15}" text-anchor="middle" font-size="7" font-weight="bold" fill="#0c4a6e">${label}</text>`;
+    return `${bodyArt(cfg, g.L, 10)}
+      ${mark(g.yF - g.y0, "前腿")}${mark(g.yB - g.y0, "後腿")}
+      <circle cx="${g.holeU}" cy="45" r="4.5" fill="#fff" stroke="${RED}" stroke-width="1" stroke-dasharray="2,1.5"/>
+      <text x="${g.holeU}" y="60" text-anchor="middle" font-size="6.5" font-weight="bold" fill="${inkOn(cfg.fur)}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">穿繩洞</text>`;
+  }
+
+  // ===== 各步驟的立體圖 =====
+  // 腿條（對折兩次後）：cut＝標出剪開位置
+  function sceneLegStrip(cfg, cut) {
+    const d = dims(cfg), S = makeScene(-32, 20);
+    const dec = legArt(cfg, d.legLen)
+      + `<rect x="0" y="0" width="${d.q}" height="36" fill="#fde047" fill-opacity="0.55"/>`
+      + `<line x1="0" y1="36" x2="${d.q}" y2="36" stroke="${YEL}" stroke-width="0.9" stroke-dasharray="3,1.8"/>`
+      + (cut ? `<line x1="${d.r}" y1="0" x2="${d.r}" y2="36" stroke="${RED}" stroke-width="1.4" stroke-dasharray="3,1.8"/>` : "");
+    S.prism(stripPoly(d.q, d.legLen), { depth: 7, fill: cfg.fur, decal: dec, H: d.legLen, edgeFill: topYellow });
+    S.prism(rectPoly(d.q - 5, d.r, 5.8, d.legLen - 36 - d.r), { depth: 8, fill: BLUE, frame: { o: [0, 0, -0.5], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.3 });
+    return S.svg(250);
+  }
+  // 腿：折片左右攤平成 T 型、腳掌貼膠帶
+  function sceneLegT(cfg) {
+    const d = dims(cfg), S = makeScene(-32, 20);
+    S.prism(rectPoly(0, 0, 72, 24.25), {
+      depth: 1.6, fill: "#fde047", stroke: "#ca8a04", H: 24.25,
+      frame: { o: [(d.q - 72) / 2, d.stemLen, 0], ux: [1, 0, 0], uy: [0, 1, 0] },
+      decal: `<line x1="36" y1="0" x2="36" y2="24.25" stroke="${RED}" stroke-width="1.2" stroke-dasharray="3,1.8"/>`
+    });
+    S.prism(stripPoly(d.q, d.stemLen), {
+      depth: 7, fill: cfg.fur, H: d.stemLen,
+      decal: `<svg x="0" y="0" width="${d.q}" height="${d.stemLen}" viewBox="0 36 ${d.q} ${d.stemLen}" overflow="hidden">${legArt(cfg, d.legLen)}</svg>`
+    });
+    S.prism(rectPoly(0, d.r + 2, d.q + 1.6, 12), { depth: 8.6, fill: BLUE, frame: { o: [-0.8, 0, -0.8], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.3 });
+    return S.svg(250);
+  }
+  // 頭：剪下的臉板
+  function sceneHead(cfg) {
+    const S = makeScene(-28, 14);
+    addHead(S, cfg, { o: [0, 0, 0], ux: [1, 0, 0], uy: [0, 1, 0] }, false);
+    return S.svg(230);
+  }
+  // 耳朵（左右各 1）＋葉片尾巴：展開後的零件，排成一列
+  function sceneEars(cfg) {
+    const sp = EAR_SPECS[cfg.ear] || EAR_SPECS.floppy, S = makeScene(-30, 18);
+    const base = flattenPath(sp.d).map(p => [p[0], sp.h - p[1]]);
+    const frAt = x => ({ o: [x, 0, 0], ux: [1, 0, 0], uy: [0, 1, 0] });
+    S.prism(base, { depth: 2, fill: cfg.accent, frame: frAt(0) });
+    S.prism(base.map(p => [sp.w - p[0], p[1]]), { depth: 2, fill: cfg.accent, frame: frAt(sp.w + 14) });
+    S.prism(LEAF(), { depth: 2, fill: cfg.accent, frame: frAt(sp.w * 2 + 30) });
+    return S.svg(200);
+  }
+  // 身體：兩張對折後套疊（黃邊＝背部摺線，下緣開口＝腹部）
+  function sceneBody(cfg) {
+    const g = bodyGeom(cfg), S = makeScene(-24, 22);
+    S.prism(roundRectPoly(g.L, 97, 10), { depth: 4, fill: shadeHex(cfg.fur, 0.92), frame: { o: [9, -4, -8.5], ux: [1, 0, 0], uy: [0, 1, 0] }, edgeFill: topYellow });
+    S.prism(roundRectPoly(g.L, 97, 10), { depth: 8, fill: cfg.fur, H: 97, frame: { o: [0, 0, -4], ux: [1, 0, 0], uy: [0, 1, 0] }, decal: bodyDecal(cfg), edgeFill: topYellow });
+    return S.svg(200);
+  }
+  // 組裝：explode＝分解、done＝組好、walk＝穿牽繩走路
+  function sceneAssembly(cfg, mode) {
+    const d = dims(cfg), g = d.g, L = g.L, BH = d.BH, q = d.q, r = d.r, stem = d.stemLen, belly = stem;
+    const S = makeScene(35, 20), ex = mode === "explode", walk = mode === "walk";
+    const headOff = ex ? -55 : 0, legZ = ex ? 42 : 0, tailOff = ex ? [34, 24] : [0, 0];
+    const cxs = [g.yF - g.y0 + 36, g.yB - g.y0 + 36];
+    const angNear = walk ? [-12, 14] : [0, 0], angFar = walk ? [12, -10] : [0, 0];
+    const rot = a => { const c = Math.cos(a * Math.PI / 180), s = Math.sin(a * Math.PI / 180); return { ux: [c, s, 0], uy: [-s, c, 0] }; };
+    const stemPoly = stripPoly(q, stem).map(p => [p[0] - r, p[1] - stem]);   // 以髖關節為原點向下延伸
+    const stemDecal = `<svg x="${-r}" y="0" width="${q}" height="${stem}" viewBox="0 36 ${q} ${stem}" overflow="hidden">${legArt(cfg, d.legLen)}</svg>`;
+    const tapePoly = rectPoly(-r - 0.8, -stem + r + 2, q + 1.6, 12);
+    const legStem = (cx, z, a) => {
+      const f = rot(a), fr = { o: [cx, belly, z], ux: f.ux, uy: f.uy };
+      S.prism(stemPoly, { depth: 6, fill: cfg.fur, frame: fr, H: stem, dorg: [-r, 0], decal: stemDecal });
+      S.prism(tapePoly, { depth: 7.6, fill: BLUE, frame: { o: [cx, belly, z - 0.8], ux: f.ux, uy: f.uy }, sw: 0.3 });
+    };
+    // 遠側的腿（被身體擋住大半）
+    cxs.forEach((cx, i) => legStem(cx, -10 - legZ, angFar[i]));
+    // 尾巴（貼在後端上方）
+    const ta = rot(-35);
+    S.prism(LEAF().map(p => [p[0] - 18.5, p[1]]), { depth: 2, fill: cfg.accent, frame: { o: [L - 4 + tailOff[0], belly + BH - 34 + tailOff[1], -1], ux: ta.ux, uy: ta.uy } });
+    // 身體
+    S.prism(roundRectPoly(L, BH, 10), { depth: 8, fill: cfg.fur, H: BH, frame: { o: [0, belly, -4], ux: [1, 0, 0], uy: [0, 1, 0] }, decal: bodyDecal(cfg), edgeFill: topYellow });
+    // 近側的腿：黃色折片貼在身體側面，腿垂下
+    cxs.forEach((cx, i) => {
+      S.prism(rectPoly(0, 0, 72, 24.25), { depth: 1.6, fill: "#fde047", stroke: "#ca8a04", frame: { o: [cx - 36, belly, 4 + legZ], ux: [1, 0, 0], uy: [0, 1, 0] } });
+      legStem(cx, 4 + legZ, angNear[i]);
+    });
+    // 頭（背面貼在身體前端）與耳朵
+    const hy = belly + BH * 0.5 - HEAD_H / 2 + 10;
+    addHead(S, cfg, { o: [headOff, hy, -HEAD_W / 2], ux: [0, 0, 1], uy: [0, 1, 0] }, true);
+    if (ex) {   // 分解圖的對位虛線
+      cxs.forEach(cx => [-36, 36].forEach(dx => S.line([[cx + dx, belly + 24.25, 4 + legZ], [cx + dx, belly + 24.25, 4]], "#0284c7", 1.2, "4,3")));
+      S.line([[headOff, hy + HEAD_H / 2, 0], [0, hy + HEAD_H / 2, 0]], "#0284c7", 1.2, "4,3");
+      S.line([[L - 4 + tailOff[0], belly + BH - 34 + tailOff[1], 0], [L - 4, belly + BH - 34, 0]], "#0284c7", 1.2, "4,3");
+    }
+    if (walk) {   // 牽繩穿過穿繩洞
+      const p0 = [g.holeU, belly + BH - 45, 4.4], c = [-10, belly + BH - 25, 40], p1 = [-95, belly + BH + 12, 75], pts = [];
+      for (let k = 0; k <= 14; k++) { const t = k / 14, u = 1 - t; pts.push([u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0], u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1], u * u * p0[2] + 2 * u * t * c[2] + t * t * p1[2]]); }
+      S.line(pts, "#f59e0b", 2.8);
+      S.dot(p1, 5, "#f59e0b");
+      S.text([p1[0], p1[1] + 14, p1[2]], "拉動牽繩！", 11, "#d97706");
+    }
+    return S.svg(300);
+  }
+
+  // ===== 版面小工具與步驟資料 =====
   const ARROW = `<span class="arrow">➡️</span>`;
   const flow = (...parts) => `<div class="flow">${parts.join("")}</div>`;
   const fig = (svg, cap) => `<figure>${svg}<figcaption>${cap}</figcaption></figure>`;
   // A4 紙縮圖（內容與列印頁完全相同）
   function thumb(inner, cap, h) {
-    h = h || 250;
+    h = h || 200;
     return fig(`<svg viewBox="0 0 210 297" height="${h}" width="${(h * 210 / 297).toFixed(0)}" style="background:#fff;border:1px solid #94a3b8;box-shadow:0 1px 5px rgba(0,0,0,.15)">${inner}</svg>`, cap);
-  }
-
-  // 腿：folded＝對折兩次的長條；cut＝標示剪開位置；splayed＝折片攤平的 T 型
-  function legShape(cfg, mode) {
-    const short = cfg.leg === "short", L = short ? 150 : 236, q = 48.5, r = q / 2, fh = 36;
-    let w, H, body;
-    if (mode === "splayed") {
-      const cx = 40, top = 6, bar = 24.25, y1 = top + bar, yb = y1 + (L - fh);
-      w = 80; H = yb + 6;
-      body = `
-        <path d="M${cx - r},${y1 - 1} V${yb - r} A${r} ${r} 0 0 0 ${cx + r},${yb - r} V${y1 - 1} Z" fill="${cfg.fur}" stroke="#000" stroke-width="0.8"/>
-        <rect x="${cx - r}" y="${yb - r - 16}" width="${q}" height="12" fill="${BLUE}" fill-opacity="0.65"/>
-        <rect x="${cx - 36}" y="${top}" width="72" height="${bar}" fill="#fde047" stroke="#ca8a04" stroke-width="0.8"/>
-        <line x1="${cx}" y1="${top}" x2="${cx}" y2="${top + bar}" stroke="${RED}" stroke-width="0.9" stroke-dasharray="3,1.8"/>`;
-    } else {
-      const x1 = 5, x2 = 5 + q, top = 5, yb = top + L, cx = x1 + r;
-      w = 62; H = yb + 6;
-      body = `
-        <path d="M${x1},${top} H${x2} V${yb - r} A${r} ${r} 0 0 1 ${x1},${yb - r} Z" fill="${cfg.fur}" stroke="#000" stroke-width="0.8"/>
-        <rect x="${x1}" y="${top}" width="${q}" height="${fh}" fill="#fde047" fill-opacity="0.55"/>
-        <line x1="${x1}" y1="${top + fh}" x2="${x2}" y2="${top + fh}" stroke="${YEL}" stroke-width="0.8" stroke-dasharray="3,1.8"/>
-        <rect x="${x2 - 5}" y="${top + fh}" width="5" height="${yb - r - top - fh}" fill="${BLUE}" fill-opacity="0.8"/>
-        ${mode === "cut" ? `<line x1="${cx}" y1="${top}" x2="${cx}" y2="${top + fh}" stroke="${RED}" stroke-width="1.2" stroke-dasharray="3,1.8"/>` : ""}`;
-    }
-    return `<svg viewBox="0 0 ${w} ${H}" height="240" width="${(240 * w / H).toFixed(0)}">${body}</svg>`;
-  }
-
-  // 頭：頭部紙折邊後的樣子
-  function headDone(cfg) {
-    return `<svg viewBox="0 0 210 200" height="200" width="210">
-      <rect x="8" y="10" width="194" height="176" rx="34" fill="${cfg.fur}" stroke="#000" stroke-width="0.8"/>
-      <line x1="34" y1="14.5" x2="176" y2="14.5" stroke="${YEL}" stroke-width="4" stroke-linecap="round"/>
-      <line x1="34" y1="181.5" x2="176" y2="181.5" stroke="${YEL}" stroke-width="4" stroke-linecap="round"/>
-      <g transform="translate(48,22)">${buildHeadSVG(cfg, 114, 150, { noEars: true })}</g>
-    </svg>`;
-  }
-
-  // 耳朵＋尾巴：展開後的零件
-  function earsDone(cfg) {
-    const sp = EAR_SPECS[cfg.ear] || EAR_SPECS.floppy, s = 110 / sp.h, ew = sp.w * s;
-    const vbW = 5 + ew * 2 + 8 + 25 + 56, sw = 0.8 / s;
-    const foldP = sp.fold ? `<path d="${sp.fold}" fill="none" stroke="${YEL}" stroke-width="${sw}" stroke-dasharray="${3 / s},${1.8 / s}"/>` : "";
-    return `<svg viewBox="0 0 ${vbW} 130" height="150" width="${(150 * vbW / 130).toFixed(0)}">
-      <g transform="translate(5,10) scale(${s})"><path d="${sp.d}" fill="${cfg.accent}" stroke="#000" stroke-width="${sw}" stroke-linejoin="round"/>${foldP}</g>
-      <g transform="translate(${5 + ew * 2 + 8},10) scale(${-s},${s})"><path d="${sp.d}" fill="${cfg.accent}" stroke="#000" stroke-width="${sw}" stroke-linejoin="round"/>${foldP}</g>
-      <g transform="translate(${5 + ew * 2 + 8 + 25},12) scale(1.1)">
-        <path d="M0,0 Q-46,50 0,100 Q46,50 0,0 Z" fill="${cfg.accent}" stroke="#000" stroke-width="0.8" stroke-linejoin="round"/>
-        <line x1="0" y1="0" x2="0" y2="100" stroke="${YEL}" stroke-width="0.8" stroke-dasharray="3,1.8"/>
-      </g>
-    </svg>`;
-  }
-
-  // 身體：兩張對折後套疊（右側黃線為對折邊＝背部；左側開口＝腹部）
-  function bodyFolded(cfg) {
-    const g = bodyGeom(cfg), ink = inkOn(cfg.fur), vbH = g.L + 34;
-    const mark = (y, label) => `
-      <rect x="10" y="${y}" width="${g.markW}" height="${g.markH}" fill="${BLUE}" fill-opacity="0.4" stroke="#0284c7" stroke-width="0.5" stroke-dasharray="2,1.5"/>
-      <text x="${10 + g.markW / 2}" y="${y + g.markH / 2 + 1.5}" text-anchor="middle" font-size="4" font-weight="bold" fill="#0c4a6e">${label}</text>`;
-    return `<svg viewBox="0 0 120 ${vbH}" height="250" width="${(250 * 120 / vbH).toFixed(0)}">
-      <rect x="14" y="26" width="97" height="${g.L}" rx="12" fill="${cfg.fur}" stroke="#64748b" stroke-width="0.8"/>
-      <rect x="8" y="${g.y0}" width="97" height="${g.L}" rx="12" fill="${cfg.fur}" stroke="#000" stroke-width="0.8"/>
-      <rect x="100" y="${g.y0 + 4}" width="3.5" height="${g.L - 8}" rx="1.5" fill="${YEL}"/>
-      <circle cx="60" cy="${g.y0 + 22}" r="4" fill="#fff" stroke="${RED}" stroke-width="0.8" stroke-dasharray="1.5,1"/>
-      ${mark(g.yF, "前腿")}${mark(g.yB, "後腿")}
-    </svg>`;
-  }
-
-  // 組裝：身體直立（黃線＝背部朝上），頭在前、尾在後、腿的折片貼在藍色方塊
-  //   pose=true：腿稍微前後擺動並穿上牽繩（完成圖）
-  function assemblySVG(cfg, pose) {
-    const g = bodyGeom(cfg), short = cfg.leg === "short";
-    const BH = 97, bx0 = 70, by0 = 70, q = 48.5, r = q / 2;
-    const legL = (short ? 150 : 236) - 36, belly = by0 + BH;
-    const vbW = bx0 + g.L + 75, vbH = belly + legL + 18;
-    const hole = { x: bx0 + 22, y: by0 + 45 };
-    const legAt = (yStart, ang, far) => {
-      const cx = bx0 + (yStart - g.y0) + 36, a = far ? 0 : ang;
-      return `<g ${far ? 'opacity="0.55"' : ""} transform="translate(${far ? 12 : 0},0) rotate(${a} ${cx} ${belly})">
-        <path d="M${cx - r},${belly - 2} V${belly + legL - r} A${r} ${r} 0 0 0 ${cx + r},${belly + legL - r} V${belly - 2} Z" fill="${cfg.fur}" stroke="#000" stroke-width="0.9"/>
-        <rect x="${cx - r}" y="${belly + legL - r - 16}" width="${q}" height="12" fill="${BLUE}" fill-opacity="0.65"/>
-        ${far ? "" : `<rect x="${cx - 36}" y="${belly - 24.25}" width="72" height="24.25" fill="#fde047" fill-opacity="0.9" stroke="#ca8a04" stroke-width="0.9"/>`}
-      </g>`;
-    };
-    const markRect = (yStart) => `<rect x="${bx0 + (yStart - g.y0)}" y="${belly - 24.25}" width="${g.markH}" height="24.25" fill="none" stroke="#0284c7" stroke-width="1.2" stroke-dasharray="3,2"/>`;
-    const angF = pose ? -10 : 0, angB = pose ? 12 : 0;
-    const hx = bx0 - 18, hy = by0 + 28;
-    return `<svg viewBox="0 0 ${vbW} ${vbH}" height="${Math.min(330, vbH * 0.85).toFixed(0)}" width="${(Math.min(330, vbH * 0.85) * vbW / vbH).toFixed(0)}">
-      <g transform="translate(${bx0 + g.L - 4},${by0 + 14}) rotate(35) scale(0.9)">
-        <path d="M0,0 Q-46,-50 0,-100 Q46,-50 0,0 Z" fill="${cfg.accent}" stroke="#000" stroke-width="1" stroke-linejoin="round"/>
-      </g>
-      ${legAt(g.yF, angF, true)}${legAt(g.yB, angB, true)}
-      <rect x="${bx0}" y="${by0}" width="${g.L}" height="${BH}" rx="12" fill="${cfg.fur}" stroke="#000" stroke-width="1"/>
-      <line x1="${bx0 + 8}" y1="${by0 + 4}" x2="${bx0 + g.L - 8}" y2="${by0 + 4}" stroke="${YEL}" stroke-width="1.6" stroke-dasharray="5,3"/>
-      <text x="${bx0 + g.L / 2}" y="${by0 + 16}" text-anchor="middle" font-size="8" fill="${inkOn(cfg.fur)}">黃色摺線＝背部</text>
-      ${markRect(g.yF)}${markRect(g.yB)}
-      ${legAt(g.yF, angF, false)}${legAt(g.yB, angB, false)}
-      <circle cx="${hole.x}" cy="${hole.y}" r="4" fill="#fff" stroke="${RED}" stroke-width="1.2" stroke-dasharray="2,1.5"/>
-      <g transform="translate(${hx - 41.5},${hy - 55})">${buildHeadSVG(cfg, 83, 110)}</g>
-      ${pose ? `<path d="M${hole.x},${hole.y} Q${bx0 - 40},${by0 + 95} 14,${by0 - 6}" fill="none" stroke="#f59e0b" stroke-width="3"/>
-      <circle cx="14" cy="${by0 - 6}" r="6" fill="#f59e0b"/>
-      <text x="6" y="${by0 - 18}" font-size="10" font-weight="bold" fill="#d97706">拉動牽繩！</text>` : `
-      <text x="${bx0 + (g.yB - g.y0) + 36}" y="${vbH - 3}" text-anchor="middle" font-size="9" font-weight="bold" fill="#0284c7">後腿偏前，走路不拖地</text>`}
-    </svg>`;
   }
 
   const STEPS = [
@@ -469,45 +630,47 @@
       text: "拿 1 張腿紙（第 5–8 頁，共 4 張），沿黃色虛線對折兩次，變成四分之一寬度的長條（上端黃色區是折片）。把開口邊緣向內收合，用透明膠帶（藍色）封住邊緣。4 條腿都這樣做。",
       render: (cfg) => flow(
         thumb(legInner(cfg, 1), "第 5–8 頁：腿紙（共 4 張）"), ARROW,
-        fig(legShape(cfg, "folded"), "對折兩次 → ¼ 寬長條，藍色膠帶封口"))
+        fig(sceneLegStrip(cfg, false), "對折兩次成 ¼ 寬長條，藍色膠帶封口"))
     },
     {
       title: "做腿（第 2 步）：剪開折片、貼出圓腳掌",
       text: "把長條上端的黃色折片區，沿紅色虛線由上往下剪開 36 mm，左右兩片折片朝前、後相反方向攤平（之後貼在身體的藍色方塊上）。底部已是圓弧腳掌，貼上藍色膠帶讓腳更挺。",
       render: (cfg) => flow(
-        fig(legShape(cfg, "cut"), "沿紅線由上往下剪開 36 mm"), ARROW,
-        fig(legShape(cfg, "splayed"), "折片攤平成 T 型；腳掌貼藍色膠帶"))
+        fig(sceneLegStrip(cfg, true), "沿紅線由上往下剪開 36 mm"), ARROW,
+        fig(sceneLegT(cfg), "折片攤平成 T 型，腳掌貼藍色膠帶"))
     },
     {
-      title: "做頭（第 3 步）：剪下頭部、摺出折邊",
-      text: "拿第 1 頁的頭部紙，沿實線剪下（四角已是圓弧形）。上、下兩條黃色虛線向內摺出細窄折邊，讓頭部有厚度，臉朝外。",
+      title: "做頭（第 3 步）：剪下頭部",
+      text: "拿第 1 頁的頭部紙，沿黑色外框剪下（四角已是圓弧形）。臉朝外，之後用透明膠帶把背面貼在身體前端。",
       render: (cfg) => flow(
         thumb(headInner(cfg), "第 1 頁：頭部紙"), ARROW,
-        fig(headDone(cfg), "上下黃色折邊向內摺，臉朝外"))
+        fig(sceneHead(cfg), "剪下的頭部（臉朝外）"))
     },
     {
       title: "做耳朵和尾巴（第 4 步）：對折剪出造型",
       text: "拿第 2 頁，沿黃色中線對折，沿實線剪下左半邊的耳朵，以及貼著中線的半片尾巴。展開後就是左右各 1 片耳朵，加上 1 片完整的葉片形尾巴。",
       render: (cfg) => flow(
         thumb(earsInner(cfg), "第 2 頁：耳朵＋尾巴"), ARROW,
-        fig(earsDone(cfg), "展開：左右耳各 1 片＋完整葉片尾巴"))
+        fig(sceneEars(cfg), "展開：左右耳各 1 片＋葉片尾巴"))
     },
     {
       title: "做身體（第 5 步）：兩張紙套疊增加厚度",
-      text: "拿第 3、4 頁（2 張身體紙），各自沿黃色中線對折，再互相套疊（身體變厚才站得穩）。紅圈（穿繩洞）對折後會重疊，一起戳穿；藍色方塊是腿折片的黏貼位置。",
+      text: "拿第 3、4 頁（2 張身體紙），各自沿黃色中線對折，再互相套疊（身體變厚才站得穩）。紅圈（穿繩洞，離前端 40 mm）對折後會重疊，一起戳穿；藍色方塊是腿折片的黏貼位置。",
       render: (cfg) => flow(
-        thumb(bodyInner(cfg), "第 3 頁", 210), thumb(bodyInner(cfg), "第 4 頁", 210), ARROW,
-        fig(bodyFolded(cfg), "對折、套疊；左側開口＝腹部，右側黃邊＝背部"))
+        thumb(bodyInner(cfg), "第 3、4 頁：身體紙 ×2"), ARROW,
+        fig(sceneBody(cfg), "對折、套疊；黃邊＝背部摺線，下緣開口＝腹部"))
     },
     {
       title: "組裝四肢與頭部（第 6 步）：注意後腿位置！",
-      text: "身體直立擺放，黃色摺線朝上當背部。把頭黏在身體前端（穿繩洞露在頭的後方），耳朵貼在頭的兩側，尾巴貼在後端。四條腿的黃色折片貼進藍色方塊，後腿位置比較靠前，走路才不會拖地。",
-      render: (cfg) => flow(fig(assemblySVG(cfg, false), "黃色折片貼進藍色虛線方塊"))
+      text: "身體直立擺放，黃色摺線朝上當背部。頭的背面貼在身體前端（穿繩洞在頭的後方），耳朵貼在頭的背面兩側，尾巴貼在後端。四條腿的黃色折片貼進藍色方塊，後腿位置比較靠前，走路才不會拖地。",
+      render: (cfg) => flow(
+        fig(sceneAssembly(cfg, "explode"), "分解：各零件對準虛線位置"), ARROW,
+        fig(sceneAssembly(cfg, "done"), "組合完成"))
     },
     {
       title: "完成（第 7 步）：穿過牽繩去散步！",
       text: "把繩子或緞帶穿過身體前端的穿繩洞並打結固定，輕輕往前拉動繩子，你的專屬紙小狗就會擺動四肢陪你散步啦！",
-      render: (cfg) => flow(fig(assemblySVG(cfg, true), "牽繩穿過穿繩洞，拉動就能走"))
+      render: (cfg) => flow(fig(sceneAssembly(cfg, "walk"), "牽繩穿過穿繩洞，拉動就能走"))
     }
   ];
 
@@ -644,7 +807,7 @@
         ${ears}
         <rect x="15" y="12" width="70" height="75" rx="22" fill="${cfg.fur}"/>
         <g clip-path="url(#${cid})">${patternSVG}</g>
-        <rect x="15" y="12" width="70" height="75" rx="22" fill="none" stroke="#1e293b" stroke-width="2.5"/>
+        <rect x="15" y="12" width="70" height="75" rx="22" fill="none" stroke="#1e293b" stroke-width="${(opts && opts.sw) || 2.5}"/>
         ${eyesSVG}
         ${mouthSVG}
         ${accSVG}
@@ -652,7 +815,7 @@
   }
 
   // 5. 生成 8 頁 A4 實際大小展開圖（座標單位 = mm，viewBox 0 0 210 297）
-  //    各零件的 xxxInner() 同時供「列印頁」與「步驟示意圖」使用，確保兩邊圖形一致。
+  //    各零件的 xxxInner() 同時供「列印頁」與「步驟立體圖」使用，確保兩邊圖形一致。
   function dash(x1, y1, x2, y2, color, w) {
     return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${w || 0.7}" stroke-dasharray="3,1.8"/>`;
   }
@@ -668,19 +831,79 @@
       </section>`;
   }
 
-  // 第 1 頁：頭部
+  // ---------- 身體 / 四肢花色（依犬種自動套用）----------
+  let artUid = 0;
+  function rng(seed) { // 固定亂數：同一犬種每次產生相同花紋
+    let a = seed >>> 0;
+    return () => { a = (a + 0x6D2B79F5) >>> 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+  }
+  // 由上緣往下的起伏色塊（背部鞍形花紋）
+  function wavyTop(u0, u1, vBase, amp, seed) {
+    const r = rng(seed), n = Math.max(6, Math.round((u1 - u0) / 6));
+    let d = `M${u0},-5 L${u0},${vBase}`;
+    for (let i = 1; i <= n; i++) d += ` L${(u0 + (u1 - u0) * i / n).toFixed(1)},${(vBase + (r() - 0.5) * 2 * amp).toFixed(1)}`;
+    return d + ` L${u1},-5 Z`;
+  }
+  // 由下緣往上的起伏色塊（腹部 / 白襪）
+  function wavyBottom(u0, u1, vBase, amp, seed, H) {
+    const r = rng(seed), n = Math.max(6, Math.round((u1 - u0) / 6));
+    let d = `M${u0},${H + 5} L${u0},${vBase}`;
+    for (let i = 1; i <= n; i++) d += ` L${(u0 + (u1 - u0) * i / n).toFixed(1)},${(vBase + (r() - 0.5) * 2 * amp).toFixed(1)}`;
+    return d + ` L${u1},${H + 5} Z`;
+  }
+  function blobSet(n, W, H, rxMin, rxMax, ryMin, ryMax, seed, fill) {
+    const r = rng(seed); let s = "";
+    for (let i = 0; i < n; i++) {
+      const x = r() * W, y = r() * H, rx = rxMin + r() * (rxMax - rxMin), ry = ryMin + r() * (ryMax - ryMin), a = r() * 180;
+      s += `<ellipse cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" rx="${rx.toFixed(1)}" ry="${ry.toFixed(1)}" transform="rotate(${a.toFixed(0)} ${x.toFixed(1)} ${y.toFixed(1)})" fill="${fill}"/>`;
+    }
+    return s;
+  }
+  function bodyClipD(L, rx) {
+    return `M${rx},0 H${L - rx} Q${L},0 ${L},${rx} V${97 - rx} Q${L},97 ${L - rx},97 H${rx} Q0,97 0,${97 - rx} V${rx} Q0,0 ${rx},0 Z`;
+  }
+  // 身體花色：座標 u＝沿身體長度（前→後）、v＝由背部往腹部（0～97）
+  function bodyArt(cfg, L, rx) {
+    const A = cfg.accent, H = 97, id = "ba" + (++artUid);
+    let s = "";
+    switch (cfg.pattern) {
+      case "spots":     s = blobSet(Math.round(L / 13), L, H, 3.5, 10, 3, 7, 11, A); break;
+      case "collie":    s = `<path d="${wavyTop(L * 0.14, L, 50, 7, 3)}" fill="${A}"/>`; break;
+      case "beagle":    s = `<path d="${wavyTop(L * 0.18, L * 0.88, 56, 8, 4)}" fill="${A}"/><ellipse cx="${L * 0.93}" cy="40" rx="14" ry="22" fill="${A}"/>`; break;
+      case "stbernard": s = blobSet(6, L, 62, 16, 28, 12, 20, 5, A); break;
+      case "huskyMask": s = `<path d="${wavyTop(0, L, 60, 6, 6)}" fill="${A}" fill-opacity="0.9"/>`; break;
+      case "shibaMask": s = `<path d="${wavyBottom(0, L, 68, 4, 8, H)}" fill="${A}"/>`; break;
+      case "hachi":     s = `<ellipse cx="${L * 0.38}" cy="28" rx="26" ry="18" fill="${A}"/><ellipse cx="${L * 0.72}" cy="62" rx="22" ry="14" fill="${A}"/>`; break;
+      default: return "";
+    }
+    return `<clipPath id="${id}"><path d="${bodyClipD(L, rx)}"/></clipPath><g clip-path="url(#${id})">${s}</g>`;
+  }
+  // 腿花色：座標 u＝腿寬（0～48.5，已對折）、v＝由上端折片往腳掌
+  function legArt(cfg, len) {
+    const q = 48.5, r = q / 2, A = cfg.accent, id = "la" + (++artUid);
+    let s = "";
+    switch (cfg.pattern) {
+      case "spots":     s = blobSet(Math.round(len / 24), q, len, 2.5, 6.5, 2.5, 5.5, 23, A); break;
+      case "collie":    s = `<path d="${wavyTop(0, q, len * 0.42, 5, 3)}" fill="${A}"/>`; break;
+      case "beagle":    s = `<path d="${wavyTop(0, q, len * 0.36, 5, 4)}" fill="${A}"/>`; break;
+      case "stbernard": s = blobSet(2, q, len * 0.6, 12, 18, 10, 16, 9, A); break;
+      case "huskyMask": s = `<path d="${wavyTop(0, q, len * 0.3, 4, 6)}" fill="${A}" fill-opacity="0.9"/>`; break;
+      case "shibaMask": s = `<path d="${wavyBottom(0, q, len * 0.66, 4, 8, len)}" fill="${A}"/>`; break;
+      default: return "";
+    }
+    return `<clipPath id="${id}"><path d="M0,0 H${q} V${len - r} A${r} ${r} 0 0 1 0 ${len - r} Z"/></clipPath><g clip-path="url(#${id})">${s}</g>`;
+  }
+
+  // 第 1 頁：頭部（頭形外框＝剪裁線；臉朝外，背面貼在身體前端）
   function headInner(cfg) {
+    const px = (210 - 84) / 2, py = 36;
     return `
-      <rect x="8" y="20" width="194" height="212" rx="40" fill="${cfg.fur}" stroke="#000" stroke-width="0.6"/>
-      ${dash(22, 38, 188, 38, YEL, 0.8)}
-      ${dash(22, 214, 188, 214, YEL, 0.8)}
-      <text x="105" y="35.5" text-anchor="middle" font-size="3.4" fill="${inkOn(cfg.fur)}">↓ 上折邊（向內摺）</text>
-      <text x="105" y="220" text-anchor="middle" font-size="3.4" fill="${inkOn(cfg.fur)}">↑ 下折邊（向內摺）</text>
-      <g transform="translate(41.5,40)">${buildHeadSVG(cfg, 127, 168, { noEars: true })}</g>
+      <g transform="translate(${px - 18},${py - 50.4})">${buildHeadSVG(cfg, 120, 158.4, { noEars: true, sw: 1.8 })}</g>
       <g font-size="4" fill="#0f172a">
-        <text x="14" y="246">1. 沿實線外框剪下（四角已是圓弧形）。</text>
-        <text x="14" y="254">2. 黃色虛線＝向內摺的細窄折邊，讓頭部有厚度。</text>
-        <text x="14" y="262">3. 臉朝外；耳朵用第 2 頁剪下的零件貼在臉的左右兩側。</text>
+        <text x="14" y="160">1. 沿黑色外框剪下（四角已是圓弧形，約 84 × 90 mm）。</text>
+        <text x="14" y="168">2. 臉朝外，背面用透明膠帶貼在身體前端（穿繩洞的前方）。</text>
+        <text x="14" y="176">3. 耳朵用第 2 頁剪下的零件，貼在頭的背面左右兩側。</text>
+        <text x="14" y="184">4. 超出外框的配飾（皇冠、吊牌）請沿其輪廓另外剪下，貼在頭上。</text>
       </g>`;
   }
 
@@ -688,7 +911,7 @@
   function earsInner(cfg) {
     const sp = EAR_SPECS[cfg.ear] || EAR_SPECS.floppy;
     const ex = 28, ey = 24, ink = inkOn(cfg.accent);
-    const tailTop = ey + sp.h + 14, tailLen = 100;
+    const tailTop = ey + sp.h + 14, tailLen = 80;
     return `
       ${dash(105, 18, 105, 288, YEL, 0.8)}
       <text x="108" y="287" font-size="3.2" fill="#a16207">← 對折線：先沿此線對折再剪</text>
@@ -701,32 +924,38 @@
         <path d="${sp.d}" fill="none" stroke="#94a3b8" stroke-width="0.4" stroke-dasharray="2,1.5" stroke-linejoin="round"/>
       </g>
       <text x="110" y="${ey + sp.h + 6}" font-size="3.2" fill="#64748b">（虛線＝對折後的鏡像位置，剪下得左右各 1 片）</text>
-      <path d="M105,${tailTop} Q59,${tailTop + tailLen / 2} 105,${tailTop + tailLen} Z" fill="${cfg.accent}" stroke="#000" stroke-width="0.6" stroke-linejoin="round"/>
-      <path d="M105,${tailTop} Q151,${tailTop + tailLen / 2} 105,${tailTop + tailLen} Z" fill="none" stroke="#94a3b8" stroke-width="0.4" stroke-dasharray="2,1.5"/>
-      <text x="95" y="${tailTop + tailLen / 2 + 2}" text-anchor="middle" font-size="4.5" font-weight="bold" fill="${ink}">尾巴</text>
+      <path d="M105,${tailTop} Q68,${tailTop + tailLen / 2} 105,${tailTop + tailLen} Z" fill="${cfg.accent}" stroke="#000" stroke-width="0.6" stroke-linejoin="round"/>
+      <path d="M105,${tailTop} Q142,${tailTop + tailLen / 2} 105,${tailTop + tailLen} Z" fill="none" stroke="#94a3b8" stroke-width="0.4" stroke-dasharray="2,1.5"/>
+      <text x="97" y="${tailTop + tailLen / 2 + 2}" text-anchor="middle" font-size="4.5" font-weight="bold" fill="${ink}">尾巴</text>
       <text x="110" y="${tailTop + tailLen / 2 + 2}" font-size="3.2" fill="#64748b">只剪貼著中線的半片，展開即為完整葉片尾巴</text>`;
   }
 
-  // 身體尺寸與腿的黏貼位置（藍色方塊：沿身體長 72 mm、離腹部邊緣 24 mm）
+  // 腿長與身體尺寸；藍色方塊＝腿折片的黏貼位置（沿身體長 72 mm、離腹部邊緣 24 mm）
+  function legLenOf(cfg) { return cfg.leg === "short" ? 110 : 170; }
   function bodyGeom(cfg) {
     const L = cfg.leg === "short" ? 268 : 232, y0 = 20;
-    return { L, y0, yF: y0 + L * 0.12, yB: y0 + L * 0.6, markW: 24, markH: 72 };
+    return { L, y0, yF: y0 + L * 0.12, yB: y0 + L * 0.6, markW: 24, markH: 72, holeU: 40 };
   }
 
-  // 第 3、4 頁：身體（2 張套疊）
+  // 第 3、4 頁：身體（2 張套疊）。左右兩半都印花色（對折後內外都有花紋）
   function bodyInner(cfg) {
     const g = bodyGeom(cfg), ink = inkOn(cfg.fur);
+    const art = bodyArt(cfg, g.L, 0);
     const mark = (x, y, label) => `
       <rect x="${x}" y="${y}" width="${g.markW}" height="${g.markH}" fill="${BLUE}" fill-opacity="0.4" stroke="#0284c7" stroke-width="0.5" stroke-dasharray="2,1.5"/>
       <text x="${x + g.markW / 2}" y="${y + g.markH / 2 + 1.5}" text-anchor="middle" font-size="4" font-weight="bold" fill="#0c4a6e">${label}</text>`;
+    const hy = g.y0 + g.holeU;
     return `
       <rect x="8" y="${g.y0}" width="194" height="${g.L}" rx="14" fill="${cfg.fur}" stroke="#000" stroke-width="0.6"/>
+      <g transform="matrix(0 1 -1 0 105 ${g.y0})">${art}</g>
+      <g transform="matrix(0 1 1 0 105 ${g.y0})">${art}</g>
+      <rect x="8" y="${g.y0}" width="194" height="${g.L}" rx="14" fill="none" stroke="#000" stroke-width="0.6"/>
       ${dash(105, g.y0 + 4, 105, g.y0 + g.L - 4, YEL, 0.9)}
-      <text x="108" y="${g.y0 + g.L / 2}" font-size="3.6" fill="${ink}">← 黃色中線：對折線</text>
-      <circle cx="60" cy="${g.y0 + 22}" r="4" fill="#fff" stroke="${RED}" stroke-width="0.7" stroke-dasharray="1.5,1"/>
-      <circle cx="150" cy="${g.y0 + 22}" r="4" fill="#fff" stroke="${RED}" stroke-width="0.7" stroke-dasharray="1.5,1"/>
-      <text x="60" y="${g.y0 + 33}" text-anchor="middle" font-size="3.4" fill="${ink}">穿繩洞</text>
-      <text x="150" y="${g.y0 + 33}" text-anchor="middle" font-size="3.4" fill="${ink}">穿繩洞</text>
+      <text x="108" y="${g.y0 + g.L / 2}" font-size="3.6" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">← 黃色中線：對折線</text>
+      <circle cx="60" cy="${hy}" r="4" fill="#fff" stroke="${RED}" stroke-width="0.7" stroke-dasharray="1.5,1"/>
+      <circle cx="150" cy="${hy}" r="4" fill="#fff" stroke="${RED}" stroke-width="0.7" stroke-dasharray="1.5,1"/>
+      <text x="60" y="${hy + 11}" text-anchor="middle" font-size="3.4" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">穿繩洞</text>
+      <text x="150" y="${hy + 11}" text-anchor="middle" font-size="3.4" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">穿繩洞</text>
       ${mark(10, g.yF, "前腿")}${mark(176, g.yF, "前腿")}
       ${mark(10, g.yB, "後腿")}${mark(176, g.yB, "後腿")}
       <text x="105" y="${g.y0 + g.L * 0.42}" text-anchor="middle" font-size="4" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">對折後與另一張身體紙套疊</text>
@@ -734,17 +963,20 @@
       <text x="105" y="${g.y0 + g.L * 0.42 + 12}" text-anchor="middle" font-size="3.4" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">藍色方塊＝腿折片的黏貼位置（後腿偏前）</text>`;
   }
 
-  // 第 5–8 頁：腿（每頁 1 條，A4 對折兩次成四分之一寬度長條）
+  // 第 5–8 頁：腿（每頁 1 條，A4 對折兩次成四分之一寬度長條；四個區段都印花色）
   function legInner(cfg, i) {
-    const short = cfg.leg === "short";
-    const L = short ? 150 : 236, y0 = 20, x0 = 8, W = 194, q = W / 4, r = q / 2, yb = y0 + L;
+    const L = legLenOf(cfg), y0 = 20, x0 = 8, W = 194, q = W / 4, r = q / 2, yb = y0 + L;
     const ink = inkOn(cfg.fur);
     let d = `M${x0},${y0} H${x0 + W} V${yb - r}`;
     for (let k = 3; k >= 0; k--) d += ` A${r} ${r} 0 0 1 ${x0 + q * k} ${yb - r}`;
     d += " Z";
     const flapH = 36;
+    let art = "";
+    for (let k = 0; k < 4; k++) art += `<g transform="translate(${x0 + q * k},${y0})">${legArt(cfg, L)}</g>`;
     return `
       <path d="${d}" fill="${cfg.fur}" stroke="#000" stroke-width="0.6" stroke-linejoin="round"/>
+      ${art}
+      <path d="${d}" fill="none" stroke="#000" stroke-width="0.6" stroke-linejoin="round"/>
       <rect x="${x0}" y="${y0}" width="${W}" height="${flapH}" fill="#fde047" fill-opacity="0.45"/>
       ${dash(x0 + q, y0, x0 + q, yb - r, YEL)}
       ${dash(x0 + q * 3, y0, x0 + q * 3, yb - r, YEL)}
@@ -793,6 +1025,8 @@
     const cfg = getConfig();
     renderStep(cfg);
     document.getElementById("miniPreview").innerHTML = buildHeadSVG(cfg, 220, 220);
+    document.getElementById("furHex").textContent = cfg.fur;
+    document.getElementById("accentHex").textContent = cfg.accent;
     document.getElementById("printTitle").textContent = `我的「${cfg.breedName}」紙小狗 － 8 頁 A4 實際大小展開圖`;
     document.getElementById("printSvgContainer").innerHTML = buildPrintPages(cfg);
   }
@@ -893,16 +1127,21 @@
   function undoAcc() { placedAccs.pop(); updateAll(); }
   function clearAcc() { placedAccs = []; updateAll(); }
 
+  function updateTagThumb() {
+    const m = tagMetrics(dogName), k = Math.min(1.7, 56 / (m.w + 4));
+    document.getElementById("tagThumb").innerHTML = `<g transform="scale(${k})">${tagSVG(dogName)}</g>`;
+  }
   function renderPalette() {
-    document.getElementById("accPalette").innerHTML = Object.keys(ACC_DEFS).map(k => `
+    document.getElementById("accItems").innerHTML = Object.keys(ACC_DEFS).filter(k => k !== "tag").map(k => `
       <div class="acc-item" data-type="${k}" title="${ACC_DEFS[k].name}">
         <svg width="64" height="32" viewBox="-30 -15 60 30">${ACC_DEFS[k].svg}</svg>
         <span>${ACC_DEFS[k].name}</span>
       </div>`).join("");
+    updateTagThumb();
   }
   function onNameInput() {
     dogName = document.getElementById("dogName").value;
-    renderPalette();
+    updateTagThumb();
     updateAll();
   }
 
@@ -911,6 +1150,7 @@
     const pal = document.getElementById("accPalette");
     renderPalette();
     pal.addEventListener("pointerdown", (e) => {
+      if (e.target.tagName === "INPUT") return;
       const it = e.target.closest(".acc-item");
       if (it && e.button === 0) startDrag(e, { mode: "new", type: it.dataset.type });
     });
