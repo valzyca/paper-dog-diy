@@ -1,8 +1,10 @@
 <!DOCTYPE html>
 <!--
   紙小狗 DIY 互動教學與 A4 展開圖產生器
-  目前版本：v1.10.2（2026-11-16）
+  目前版本：v1.11.0（2026-11-16）
   修改記錄（新到舊；每次修改請同步更新此處與下方 APP_VERSION / CHANGELOG）：
+  1.11.0  (2026-11-16)  耳朵尖銳處修成圓角（立耳、大立耳、半立耳、折耳；第 2 頁耳朵剪裁輪廓與頭部預覽、步驟圖同步，剪下更好剪也更安全）
+  1.10.3  (2026-11-16)  步驟 1 ④ 依新手稿簡化：只畫膠帶封邊（折片併攏不撐開、無剪開紅點；淡藍鋸齒膠帶由剪開線下方沿長條右緣貼到腳尖附近並略微包出邊緣）
   1.10.2  (2026-11-16)  步驟 1 ④ 依手稿重畫（剪開的折片左右撐開並前後傾斜、左片外緣標示剪開紅點、長條右緣貼細長淡藍膠帶）；腿紙花色只印在中間兩區（折好後留在外側的兩面），兩外側區不上花色並標註「折進內側」
   1.10.1  (2026-11-16)  步驟 1 依手繪圖改為四個分解圖：① 剪開、② 兩外側向內折、③ 兩側向內合併、④ 已剪開並以膠帶封邊（立體圖）；步驟 2 左圖同步沿用完成的長條
   1.10.0  (2026-11-16)  做腿步驟順序調整：第 1 步先剪開折片再對折成長條並以膠帶封口，第 2 步折片攤平成 T 型、藍色區域膠帶貼一圈；膠帶改繪為淡藍半透明、兩端鋸齒切口；列印頁腿紙說明同步修改
@@ -421,21 +423,34 @@
     hachi:        { name: "動漫風小八", fur: "#ffffff", accent: "#3b82f6", ear: "pointy", leg: "normal", pattern: "hachi",     eye: "sparkle",   mouth: "smileBlush" }
   };
 
+  // 多邊形尖角修圓：每個頂點改用二次曲線（r＝圓角大小）
+  function roundedPoly(pts, r) {
+    const n = pts.length, f = (v) => Math.round(v * 100) / 100;
+    const cut = (P, Q) => { const dx = Q[0] - P[0], dy = Q[1] - P[1], m = Math.hypot(dx, dy) || 1, t = Math.min(r, m / 2); return [P[0] + dx / m * t, P[1] + dy / m * t]; };
+    let d = "";
+    for (let i = 0; i < n; i++) {
+      const P = pts[i], a = cut(P, pts[(i + n - 1) % n]), b = cut(P, pts[(i + 1) % n]);
+      d += (i ? "L" : "M") + f(a[0]) + "," + f(a[1]) + " Q" + f(P[0]) + "," + f(P[1]) + " " + f(b[0]) + "," + f(b[1]) + " ";
+    }
+    return d + "Z";
+  }
   // 耳型展開圖規格（單位 mm，原點在左上角；列印頁與步驟圖共用）
   //   d    = 外輪廓（實線剪下）
   //   fold = 摺線（黃色虛線，可省略）
   const EAR_SPECS = {
-    pointy:    { w: 42, h: 63,  d: "M0,63 L21,0 L42,63 Z" },
-    bigPointy: { w: 49, h: 80,  d: "M0,80 L24.5,0 L49,80 Z" },
+    pointy:    { w: 42, h: 63,  d: roundedPoly([[0,63],[21,0],[42,63]], 9) },
+    bigPointy: { w: 49, h: 80,  d: roundedPoly([[0,80],[24.5,0],[49,80]], 11) },
     floppy:    { w: 42, h: 66,  d: "M8,0 Q42,0 42,38 Q41,66 21,66 Q0,63 0,28 Q0,3 8,0 Z" },
     longFlop:  { w: 36, h: 96,  d: "M18,0 Q36,0 36,48 Q35,96 18,96 Q1,96 0,48 Q0,0 18,0 Z" },
-    half:      { w: 43, h: 63,  d: "M0,63 L5.5,21 L21,0 L37.5,21 L43,63 Z", fold: "M5.5,21 L37.5,21" },
-    folded:    { w: 42, h: 49,  d: "M0,49 L4,0 L42,35 Z", fold: "M4,0 L21,42" }
+    half:      { w: 43, h: 63,  d: roundedPoly([[0,63],[5.5,21],[21,0],[37.5,21],[43,63]], 8), fold: "M5.5,21 L37.5,21" },
+    folded:    { w: 42, h: 49,  d: roundedPoly([[0,49],[4,0],[42,35]], 7), fold: "M4,0 L21,42" }
   };
 
   // 版本資訊：每次修改請遞增版本號並在 CHANGELOG 最前面新增一筆（同步更新檔案最上方的 HTML 註解）
-  const APP_VERSION = "1.10.2";
+  const APP_VERSION = "1.11.0";
   const CHANGELOG = [
+    { v: "1.11.0", date: "2026-11-16", note: "耳朵尖銳處修成圓角（立耳、大立耳、半立耳、折耳；第 2 頁耳朵剪裁輪廓與頭部預覽、步驟圖同步）" },
+    { v: "1.10.3", date: "2026-11-16", note: "步驟 1 ④ 依新手稿簡化：只畫膠帶封邊（折片併攏不撐開、無剪開紅點；淡藍鋸齒膠帶由剪開線下方沿長條右緣貼到腳尖附近並略微包出邊緣）" },
     { v: "1.10.2", date: "2026-11-16", note: "步驟 1 ④ 依手稿重畫（剪開的折片左右撐開並前後傾斜、左片外緣標示剪開紅點、長條右緣貼細長淡藍膠帶）；腿紙花色只印在中間兩區（折好後留在外側的兩面），兩外側區不上花色並標註「折進內側」" },
     { v: "1.10.1", date: "2026-11-16", note: "步驟 1 依手繪圖改為四個分解圖：① 剪開、② 兩外側向內折、③ 兩側向內合併、④ 已剪開並以膠帶封邊（立體圖）；步驟 2 左圖同步沿用完成的長條" },
     { v: "1.10.0", date: "2026-11-16", note: "做腿步驟順序調整：第 1 步先剪開折片再對折成長條並以膠帶封口，第 2 步折片攤平成 T 型、藍色區域膠帶貼一圈；膠帶改繪為淡藍半透明、兩端鋸齒切口；列印頁腿紙說明同步修改" },
@@ -747,9 +762,9 @@
       depth: 3, fill: "#fde68a", stroke: "#ca8a04", sw: 0.5, frame: f.fr, edgeFill: () => "#fcd34d",
       H: 36, dorg: [-r, 36], decal: i === 0 && labels ? dots : ""
     }));
-    S.prism(jaggedTape(7, top - d.r - 6, true), Object.assign({ depth: 8.4, frame: { o: [q - 8, d.r + 3, -0.7], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.4 }, TAPE));
+    S.prism(jaggedTape(6.5, top - d.r - 3, true), Object.assign({ depth: 8.4, frame: { o: [q - 5, d.r + 3, -0.7], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.4 }, TAPE));
     if (labels) {
-      S.text([-14, L + 4, 3.5], "已剪開", 12, RED);
+      if (splay) S.text([-14, L + 4, 3.5], "已剪開", 12, RED);
       S.text([q + 24, L * 0.3, 3.5], "膠帶封邊", 12, "#0369a1");
     }
     return S.svg(200);
@@ -854,12 +869,12 @@
   const STEPS = [
     {
       title: "做腿（第 1 步）：剪開折片、把腿紙摺成長條",
-      text: "拿 1 張腿紙（第 5–8 頁，共 4 張）。① 把上端的黃色折片區，沿紅色虛線由上往下剪開 36 mm。② 左右兩側（外側的四分之一寬）沿黃色虛線向內折。③ 兩側再向內合併（沿中線對折），變成四分之一寬度的長條（上端黃色區是折片）。④ 開口邊緣向內收合，用透明膠帶（淡藍色）封邊；剪開的折片可向兩側撐開。花色只印在中間兩區，折好後剛好留在外側的兩面，兩外側區折進內側、不上花色。4 條腿都這樣做。",
+      text: "拿 1 張腿紙（第 5–8 頁，共 4 張）。① 把上端的黃色折片區，沿紅色虛線由上往下剪開 36 mm。② 左右兩側（外側的四分之一寬）沿黃色虛線向內折。③ 兩側再向內合併（沿中線對折），變成四分之一寬度的長條（上端黃色區是折片）。④ 折片併攏，只用透明膠帶（淡藍色）沿長條右側邊緣由剪開線下方貼到腳尖附近封邊。花色只印在中間兩區，折好後剛好留在外側的兩面，兩外側區折進內側、不上花色。4 條腿都這樣做。",
       render: (cfg) => flow(
         fig(sceneLegPaper(cfg, "flat"), "① 剪開：沿紅線由上往下剪 36 mm"), ARROW,
         fig(sceneLegPaper(cfg, "fold"), "② 兩外側沿黃線向內折"), ARROW,
         fig(sceneLegPaper(cfg, "merge"), "③ 兩側向內合併成 ¼ 寬"), ARROW,
-        fig(sceneLegStrip(cfg, 32, true), "④ 已剪開（折片可撐開），淡藍透明膠帶封邊"))
+        fig(sceneLegStrip(cfg, 0, true), "④ 只做膠帶封邊：沿長條右側邊緣貼淡藍透明膠帶"))
     },
     {
       title: "做腿（第 2 步）：折片攤平成 T 型，貼出圓腳掌",
@@ -943,11 +958,11 @@
     if (cfg.ear === "pointy" || cfg.ear === "bigPointy") {
       const topY = cfg.ear === "bigPointy" ? -28 : -16;
       ears = `
-        <polygon points="15,25 25,${topY} 45,15" fill="${A}" stroke="#1e293b" stroke-width="2"/>
-        <polygon points="85,25 75,${topY} 55,15" fill="${A}" stroke="#1e293b" stroke-width="2"/>`;
+        <path d="${roundedPoly([[15,25],[25,topY],[45,15]], 8)}" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>
+        <path d="${roundedPoly([[85,25],[75,topY],[55,15]], 8)}" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>`;
       if (cfg.pattern === "huskyMask") {   // 耳內淺粉白絨毛
         const t = topY + 12;
-        ears += `<polygon points="22,22 26,${t} 38,16" fill="#f5e6ea"/><polygon points="78,22 74,${t} 62,16" fill="#f5e6ea"/>`;
+        ears += `<path d="${roundedPoly([[22,22],[26,t],[38,16]], 5)}" fill="#f5e6ea"/><path d="${roundedPoly([[78,22],[74,t],[62,16]], 5)}" fill="#f5e6ea"/>`;
       }
     } else if (cfg.ear === "longFlop") {
       ears = `
@@ -956,13 +971,13 @@
     } else if (cfg.ear === "half") {
       // 半立耳：耳尖向前摺
       ears = `
-        <path d="M13,30 L16,10 L26,2 L42,16 L44,30 Z" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M87,30 L84,10 L74,2 L58,16 L56,30 Z" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>`;
+        <path d="${roundedPoly([[13,30],[16,10],[26,2],[42,16],[44,30]], 6)}" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>
+        <path d="${roundedPoly([[87,30],[84,10],[74,2],[58,16],[56,30]], 6)}" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>`;
     } else if (cfg.ear === "folded") {
       // 折耳：小三角向前垂摺
       ears = `
-        <path d="M12,26 L16,6 L44,18 L40,30 Z" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>
-        <path d="M88,26 L84,6 L56,18 L60,30 Z" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>`;
+        <path d="${roundedPoly([[12,26],[16,6],[44,18],[40,30]], 6)}" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>
+        <path d="${roundedPoly([[88,26],[84,6],[56,18],[60,30]], 6)}" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>`;
     } else {
       ears = `
         <ellipse cx="14" cy="42" rx="12" ry="22" fill="${A}" stroke="#1e293b" stroke-width="2"/>
