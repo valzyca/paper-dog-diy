@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <!--
   紙小狗 DIY 互動教學與 A4 展開圖產生器
-  目前版本：v1.11.3（2026-11-16）
+  目前版本：v1.11.4（2026-11-16）
   修改記錄（新到舊；每次修改請同步更新此處與下方 APP_VERSION / CHANGELOG）：
+  1.11.4  (2026-11-16)  步驟 2 圖示嚴格依手稿外觀重畫：① 折片小角度向兩側分開（外側小彎箭頭）；② 兩片折片折成 90°，在長條上端向左右攤平成水平的菱形頂板；去除手稿沒有的腳掌膠帶圈與「90°」記號，保留長條右緣膠帶
   1.11.3  (2026-11-16)  步驟 2 圖示依手稿改為兩張：① 兩片折片向兩側分開（彎箭頭）、② 折成 90° 攤平成 T 型（標示直角）
   1.11.2  (2026-11-16)  步驟 1 說明文字依指定內容修改（④ 改為折片併攏、膠帶沿合併邊緣貼到腳尖附近封邊）
   1.11.1  (2026-11-16)  步驟 1 ④ 與步驟 2 左圖：折片併攏處改畫成一整片，移除中間不存在的垂直接縫線與左緣紅點線
@@ -450,8 +451,9 @@
   };
 
   // 版本資訊：每次修改請遞增版本號並在 CHANGELOG 最前面新增一筆（同步更新檔案最上方的 HTML 註解）
-  const APP_VERSION = "1.11.3";
+  const APP_VERSION = "1.11.4";
   const CHANGELOG = [
+    { v: "1.11.4", date: "2026-11-16", note: "步驟 2 圖示嚴格依手稿外觀重畫：① 折片小角度向兩側分開；② 兩片折片折成 90°，在長條上端向左右攤平成水平頂板；去除手稿沒有的腳掌膠帶圈與「90°」記號" },
     { v: "1.11.3", date: "2026-11-16", note: "步驟 2 圖示依手稿改為兩張：① 兩片折片向兩側分開（彎箭頭）、② 折成 90° 攤平成 T 型（標示直角）" },
     { v: "1.11.2", date: "2026-11-16", note: "步驟 1 說明文字依指定內容修改（④ 改為折片併攏、膠帶沿合併邊緣貼到腳尖附近封邊）" },
     { v: "1.11.1", date: "2026-11-16", note: "步驟 1 ④ 與步驟 2 左圖：折片併攏處改畫成一整片，移除中間不存在的垂直接縫線與左緣紅點線" },
@@ -773,10 +775,10 @@
     }));
     S.prism(jaggedTape(6.5, top - d.r - 3, true), Object.assign({ depth: 8.4, frame: { o: [q - 5, d.r + 3, -0.7], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.4 }, TAPE));
     if (arrows) {   // 手稿：兩片折片向兩側分開（彎箭頭）
-      const R = 54;
+      const R = 50;
       [-1, 1].forEach(sg => {
         const pts = [];
-        for (let a = 8; a <= 58; a += 10) { const t = a * Math.PI / 180; pts.push([r + sg * R * Math.sin(t), top + R * Math.cos(t), sg * 4]); }
+        for (let a = 14; a <= 54; a += 10) { const t = a * Math.PI / 180; pts.push([r + sg * R * Math.sin(t), top + R * Math.cos(t), sg * 4]); }
         S.line(pts, ORANGE, 2.4);
         const e = pts[pts.length - 1], b = pts[pts.length - 2], dx = e[0] - b[0], dy = e[1] - b[1], m = Math.hypot(dx, dy), ux = dx / m, uy = dy / m;
         [0.5, -0.5].forEach(ang => { const c = Math.cos(ang), sn = Math.sin(ang); S.line([e, [e[0] - 9 * (ux * c - uy * sn), e[1] - 9 * (ux * sn + uy * c), e[2]]], ORANGE, 2.4); });
@@ -788,24 +790,19 @@
     }
     return S.svg(200);
   }
-  // 腿：黃色折片左右攤平成 T 型；藍色區域（腳掌上方）用膠帶貼一圈
+  // 腿（手繪步驟 2 ②）：兩片折片折成 90°，在長條上端左右攤平成水平的 T 型頂板；長條右緣保留膠帶
   function sceneLegT(cfg) {
-    const d = dims(cfg), S = makeScene(-32, 20);
-    S.prism(rectPoly(0, 0, 72, 24.25), {
-      depth: 1.6, fill: "#fde047", stroke: "#ca8a04", H: 24.25,
-      frame: { o: [(d.q - 72) / 2, d.stemLen, 0], ux: [1, 0, 0], uy: [0, 1, 0] },
-      decal: `<line x1="36" y1="0" x2="36" y2="24.25" stroke="${RED}" stroke-width="1.2" stroke-dasharray="3,1.8"/>`
+    const d = dims(cfg), S = makeScene(-38, 42), q = d.q, h = d.stemLen;
+    S.prism(stripPoly(q, h), {
+      depth: 7, fill: cfg.fur, H: h,
+      decal: `<svg x="0" y="0" width="${q}" height="${h}" viewBox="0 36 ${q} ${h}" overflow="hidden">${legArt(cfg, d.legLen)}</svg>`
     });
-    S.prism(stripPoly(d.q, d.stemLen), {
-      depth: 7, fill: cfg.fur, H: d.stemLen,
-      decal: `<svg x="0" y="0" width="${d.q}" height="${d.stemLen}" viewBox="0 36 ${d.q} ${d.stemLen}" overflow="hidden">${legArt(cfg, d.legLen)}</svg>`
-    });
-    // 繞一圈的膠帶（藍色區域）＋正面的接合處（鋸齒切口）
-    S.prism(rectPoly(0, 0, d.q + 1.6, 12), Object.assign({ depth: 8.6, frame: { o: [-0.8, d.r + 2, -0.8], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.3 }, TAPE));
-    S.prism(jaggedTape(12, 12, false), Object.assign({ depth: 9.2, frame: { o: [d.q / 2 - 6, d.r + 2, -1.1], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.4 }, TAPE, { opacity: 0.6 }));
-    const ORANGE = "#f97316", yb = d.stemLen, k = 9;   // 折片與長條成 90°：直角記號
-    S.line([[d.q, yb - k, -1], [d.q + k, yb - k, -1], [d.q + k, yb, -1]], ORANGE, 2);
-    S.text([d.q + k + 4, yb - k - 8, -1], "90°", 12, ORANGE);
+    S.prism(jaggedTape(6.5, h - d.r - 3, true), Object.assign({ depth: 8.4, frame: { o: [q - 5, d.r + 3, -0.7], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.4 }, TAPE));
+    // 兩片水平頂板（各 36 mm 長、24.25 mm 寬），向左、向右攤平
+    [[-36, "#fde047"], [0, "#fcd34d"]].forEach(([x0, c]) => S.prism(rectPoly(0, 0, 36, d.r), {
+      depth: 1.6, fill: c, stroke: "#ca8a04", sw: 0.6,
+      frame: { o: [q / 2 + x0, h + 1.6, 3.5 - d.r / 2], ux: [1, 0, 0], uy: [0, 0, 1] }
+    }));
     return S.svg(250);
   }
   // 頭：剪下的臉板
@@ -902,8 +899,8 @@
       title: "做腿（第 2 步）：折片攤平成 T 型，貼出圓腳掌",
       text: "黃色折片區，左右兩片折片朝相反方向攤平，成為貼在身體側面的「腿的貼片」（此區沒有花色，方便黏貼）。將膠帶貼一圈在藍色區域讓腳更挺。",
       render: (cfg) => flow(
-        fig(sceneLegStrip(cfg, 42, false, true), "① 兩片折片向兩側分開"), ARROW,
-        fig(sceneLegT(cfg), "② 折成 90°，攤平成 T 型；藍色區域用膠帶貼一圈"))
+        fig(sceneLegStrip(cfg, 22, false, true), "① 向兩側分開"), ARROW,
+        fig(sceneLegT(cfg), "② 折成 90°"))
     },
     {
       title: "做頭（第 3 步）：剪下頭部",
