@@ -1,8 +1,9 @@
 <!DOCTYPE html>
 <!--
   紙小狗 DIY 互動教學與 A4 展開圖產生器
-  目前版本：v1.10.0（2026-11-16）
+  目前版本：v1.10.1（2026-11-16）
   修改記錄（新到舊；每次修改請同步更新此處與下方 APP_VERSION / CHANGELOG）：
+  1.10.1  (2026-11-16)  步驟 1 依手繪圖改為四個分解圖：① 剪開、② 兩外側向內折、③ 兩側向內合併、④ 已剪開並以膠帶封邊（立體圖）；步驟 2 左圖同步沿用完成的長條
   1.10.0  (2026-11-16)  做腿步驟順序調整：第 1 步先剪開折片再對折成長條並以膠帶封口，第 2 步折片攤平成 T 型、藍色區域膠帶貼一圈；膠帶改繪為淡藍半透明、兩端鋸齒切口；列印頁腿紙說明同步修改
   1.9.2  (2026-11-16)  預覽 8 頁展開圖：滑鼠移到哪一頁，就在畫面另一側放大顯示該頁（該頁並加藍框標示）
   1.9.1  (2026-11-16)  金屬吊牌（銘牌）可選金色或銀色，切換後預覽、已放上的吊牌與列印頁一起變色
@@ -432,8 +433,9 @@
   };
 
   // 版本資訊：每次修改請遞增版本號並在 CHANGELOG 最前面新增一筆（同步更新檔案最上方的 HTML 註解）
-  const APP_VERSION = "1.10.0";
+  const APP_VERSION = "1.10.1";
   const CHANGELOG = [
+    { v: "1.10.1", date: "2026-11-16", note: "步驟 1 依手繪圖改為四個分解圖：① 剪開、② 兩外側向內折、③ 兩側向內合併、④ 已剪開並以膠帶封邊（立體圖）；步驟 2 左圖同步沿用完成的長條" },
     { v: "1.10.0", date: "2026-11-16", note: "做腿步驟順序調整：第 1 步先剪開折片再對折成長條並以膠帶封口，第 2 步折片攤平成 T 型、藍色區域膠帶貼一圈；膠帶改繪為淡藍半透明、兩端鋸齒切口；列印頁腿紙說明同步修改" },
     { v: "1.9.2", date: "2026-11-16", note: "預覽 8 頁展開圖：滑鼠移到哪一頁，就在畫面另一側放大顯示該頁（該頁並加藍框標示）" },
     { v: "1.9.1", date: "2026-11-16", note: "金屬吊牌（銘牌）可選金色或銀色，切換後預覽、已放上的吊牌與列印頁一起變色" },
@@ -600,7 +602,8 @@
       },
       dot(p, r, fill) { const s = proj(p); out.push(`<circle cx="${s[0].toFixed(2)}" cy="${s[1].toFixed(2)}" r="${r}" fill="${fill}"/>`); },
       text(p, str, size, color) {
-        const s = proj(p);
+        const s = proj(p), hw = str.length * size * 0.55;
+        bb.x0 = Math.min(bb.x0, s[0] - hw); bb.x1 = Math.max(bb.x1, s[0] + hw); bb.y0 = Math.min(bb.y0, s[1] - size); bb.y1 = Math.max(bb.y1, s[1] + 4);
         out.push(`<text x="${s[0].toFixed(2)}" y="${s[1].toFixed(2)}" text-anchor="middle" font-size="${size}" font-weight="bold" fill="${color}" paint-order="stroke" stroke="#fff" stroke-width="2.2">${str}</text>`);
       },
       svg(height) {
@@ -670,18 +673,78 @@
     }
     return pts;
   }
-  // 腿條：剪開折片、對折兩次後的長條；右側開口邊緣貼一條淡藍透明膠帶封住
-  function sceneLegStrip(cfg) {
-    const d = dims(cfg), S = makeScene(-32, 20);
-    const dec = legArt(cfg, d.legLen)
-      + `<rect x="0" y="0" width="${d.q}" height="36" fill="#fde047" fill-opacity="0.55"/>`
-      + `<line x1="0" y1="36" x2="${d.q}" y2="36" stroke="${YEL}" stroke-width="0.9" stroke-dasharray="3,1.8"/>`
-      + `<line x1="${d.r}" y1="0" x2="${d.r}" y2="36" stroke="#1e293b" stroke-width="1.1"/>`
-      + `<text x="${d.r}" y="46" text-anchor="middle" font-size="6" font-weight="bold" fill="${RED}" paint-order="stroke" stroke="#fff" stroke-width="1.6">已剪開</text>`;
-    S.prism(stripPoly(d.q, d.legLen), { depth: 7, fill: cfg.fur, decal: dec, H: d.legLen, edgeFill: topYellow });
-    S.prism(jaggedTape(10, d.legLen - 36 - d.r - 4, true), Object.assign({ depth: 8.4, frame: { o: [d.q - 11, d.r + 2, -0.7], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.4 }, TAPE));
-    return S.svg(250);
+  // 腿紙的摺法（依手繪四步驟）：① 剪開 → ② 兩外側向內折 → ③ 兩側向內合併 → ④ 已剪開、膠帶封邊
+  function legPaperDecal(cfg, k) {
+    const d = dims(cfg), L = d.legLen, q = d.q;
+    const dl = (x, y1, y2, c, w) => `<line x1="${x}" y1="${y1}" x2="${x}" y2="${y2}" stroke="${c}" stroke-width="${w || 1}" stroke-dasharray="3,1.8"/>`;
+    let e = "";
+    if (k === 0) e = dl(q, 0, L, YEL);
+    if (k === 1) e = dl(0, 0, L, YEL) + dl(q, 0, 36, RED, 1.5) + dl(q, 36, L, YEL);
+    if (k === 2) e = dl(q, 0, L, YEL) + dl(0, 0, 36, RED, 1.5) + dl(0, 36, L, YEL);
+    if (k === 3) e = dl(0, 0, L, YEL);
+    return legArt(cfg, L, 8 + k) + `<rect x="0" y="0" width="${q}" height="36" fill="#fde047" fill-opacity="0.5"/>`
+      + `<line x1="0" y1="36" x2="${q}" y2="36" stroke="${YEL}" stroke-width="0.9" stroke-dasharray="3,1.8"/>` + e;
   }
+  function arcArrow(S, pts, color) {
+    S.line(pts, color, 2.4);
+    const n = pts.length, a = pts[n - 1], b = pts[n - 2];
+    let u = [b[0] - a[0], 0, b[2] - a[2]]; const m = Math.hypot(u[0], u[2]) || 1; u = [u[0] / m, 0, u[2] / m];
+    const p = [-u[2], 0, u[0]], c = Math.cos(0.5), s = Math.sin(0.5);
+    [1, -1].forEach(sg => S.line([a, [a[0] + 9 * (u[0] * c + sg * p[0] * s), a[1], a[2] + 9 * (u[2] * c + sg * p[2] * s)]], color, 2.4));
+  }
+  // mode: flat（①）/ fold（②）/ merge（③）
+  function sceneLegPaper(cfg, mode) {
+    const d = dims(cfg), L = d.legLen, q = d.q, S = mode === "flat" ? makeScene(-24, 18) : makeScene(-42, 28), poly = stripPoly(q, L);
+    const sec = (k, fr, depth) => S.prism(poly, { depth: depth || 1.4, fill: cfg.fur, H: L, decal: legPaperDecal(cfg, k), frame: fr, sw: 0.45 });
+    const UP = [0, 1, 0], ORG = [0.8 * 0, 0, 0];
+    const ay = L * 0.55, ORANGE = "#f97316";
+    if (mode === "flat") {
+      for (let k = 0; k < 4; k++) sec(k, { o: [k * q, 0, 0], ux: [1, 0, 0], uy: UP });
+      S.line([[2 * q, L - 36, 3], [2 * q, L + 4, 3]], RED, 2.2, "4,3");
+      S.text([2 * q, L + 22, 3], "✂ 剪開 36 mm", 13, RED);
+    } else if (mode === "fold") {
+      const f = 62 * Math.PI / 180, c = Math.cos(f), s = Math.sin(f);
+      sec(0, { o: [q - q * c, 0, -q * s], ux: [c, 0, s], uy: UP });
+      sec(3, { o: [3 * q, 0, 0], ux: [c, 0, -s], uy: UP });
+      sec(1, { o: [q, 0, 0], ux: [1, 0, 0], uy: UP });
+      sec(2, { o: [2 * q, 0, 0], ux: [1, 0, 0], uy: UP });
+      const arc = (ax, sgn) => { const p = []; for (let a = 70; a <= 150; a += 8) { const r = a * Math.PI / 180; p.push([ax + sgn * q * Math.cos(r) * -1, ay, -q * Math.sin(r)]); } return p; };
+      arcArrow(S, arc(q, 1).map(p => [p[0], p[1], p[2]]), ORANGE);
+      arcArrow(S, arc(3 * q, -1), ORANGE);
+      S.text([q, L + 16, 0], "向內折", 13, ORANGE); S.text([3 * q, L + 16, 0], "向內折", 13, ORANGE);
+    } else {
+      const g = 40 * Math.PI / 180, c = Math.cos(g), s = Math.sin(g);
+      // 左半（第 1 區＋折在背後的第 0 區）與右半（第 2 區＋折在背後的第 3 區）以中線為軸，一起向背後合攏
+      sec(1, { o: [2 * q - q * c - 0 * s, 0, -q * s], ux: [c, 0, s], uy: UP }, 2.8);
+      sec(2, { o: [2 * q, 0, 0], ux: [c, 0, -s], uy: UP }, 2.8);
+      const arc = (sgn) => { const p = []; for (let a = 55; a <= 88; a += 6) { const r = a * Math.PI / 180; p.push([2 * q + sgn * q * Math.cos(r) * -1, ay, -q * Math.sin(r)]); } return p; };
+      arcArrow(S, arc(1), ORANGE); arcArrow(S, arc(-1), ORANGE);
+      S.text([2 * q, L + 16, 0], "兩側向內合併", 13, ORANGE);
+    }
+    return S.svg(mode === "flat" ? 170 : 190);
+  }
+  // 腿條：剪開折片、對折兩次後的長條；splay＝折片向兩側撐開的角度；右側開口邊緣貼淡藍透明膠帶
+  function sceneLegStrip(cfg, splay, labels) {
+    const d = dims(cfg), L = d.legLen, q = d.q, r = d.r, S = makeScene(-30, 18), top = L - 36;
+    const th = (splay || 0) * Math.PI / 180, c = Math.cos(th), s = Math.sin(th);
+    S.prism(stripPoly(q, top), {
+      depth: 7, fill: cfg.fur, H: top,
+      decal: `<svg x="0" y="0" width="${q}" height="${top}" viewBox="0 36 ${q} ${top}" overflow="hidden">${legArt(cfg, L, 8)}</svg>`
+    });
+    // 兩片折片（各半條寬、36 mm 長、兩層）：以切口底部為軸向外撐開
+    const flap = (left) => ({
+      poly: left ? rectPoly(-r, 0, r, 36) : rectPoly(0, 0, r, 36),
+      fr: left ? { o: [r, top, 0], ux: [c, s, 0], uy: [-s, c, 0] } : { o: [r, top, 0], ux: [c, -s, 0], uy: [s, c, 0] }
+    });
+    [flap(true), flap(false)].forEach(f => S.prism(f.poly, { depth: 7, fill: "#fde68a", stroke: "#ca8a04", sw: 0.5, frame: f.fr, edgeFill: () => "#fcd34d" }));
+    S.prism(jaggedTape(10, top - d.r - 4, true), Object.assign({ depth: 8.4, frame: { o: [q - 11, d.r + 2, -0.7], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.4 }, TAPE));
+    if (labels) {
+      S.text([-2, L + 6, 3.5], "已剪開", 12, RED);
+      S.text([q + 22, L * 0.35, 3.5], "膠帶封邊", 12, "#0369a1");
+    }
+    return S.svg(190);
+  }
+
   // 腿：黃色折片左右攤平成 T 型；藍色區域（腳掌上方）用膠帶貼一圈
   function sceneLegT(cfg) {
     const d = dims(cfg), S = makeScene(-32, 20);
@@ -782,16 +845,18 @@
   const STEPS = [
     {
       title: "做腿（第 1 步）：剪開折片、把腿紙摺成長條",
-      text: "拿 1 張腿紙（第 5–8 頁，共 4 張），把長條上端的黃色折片區，沿紅色虛線由上往下剪開 36 mm，沿黃色虛線對折兩次，變成四分之一寬度的長條（上端黃色區是折片）。把開口邊緣向內收合，用透明膠帶（藍色）封住邊緣。4 條腿都這樣做。",
+      text: "拿 1 張腿紙（第 5–8 頁，共 4 張）。① 把上端的黃色折片區，沿紅色虛線由上往下剪開 36 mm。② 左右兩側（外側的四分之一寬）沿黃色虛線向內折。③ 兩側再向內合併（沿中線對折），變成四分之一寬度的長條（上端黃色區是折片）。④ 開口邊緣向內收合，用透明膠帶（淡藍色）封邊；剪開的折片可向兩側撐開。4 條腿都這樣做。",
       render: (cfg) => flow(
-        thumb(legInner(cfg, 1), "第 5–8 頁：腿紙（共 4 張）"), ARROW,
-        fig(sceneLegStrip(cfg), "先剪開折片，再對折兩次成 ¼ 寬長條，用淡藍透明膠帶封住開口邊緣"))
+        fig(sceneLegPaper(cfg, "flat"), "① 剪開：沿紅線由上往下剪 36 mm"), ARROW,
+        fig(sceneLegPaper(cfg, "fold"), "② 兩外側沿黃線向內折"), ARROW,
+        fig(sceneLegPaper(cfg, "merge"), "③ 兩側向內合併成 ¼ 寬"), ARROW,
+        fig(sceneLegStrip(cfg, 32, true), "④ 已剪開（折片可撐開），淡藍透明膠帶封邊"))
     },
     {
       title: "做腿（第 2 步）：折片攤平成 T 型，貼出圓腳掌",
       text: "黃色折片區，左右兩片折片朝相反方向攤平，成為貼在身體側面的「腿的貼片」（此區沒有花色，方便黏貼）。將膠帶貼一圈在藍色區域讓腳更挺。",
       render: (cfg) => flow(
-        fig(sceneLegStrip(cfg), "第 1 步完成的長條"), ARROW,
+        fig(sceneLegStrip(cfg, 0, false), "第 1 步完成的長條"), ARROW,
         fig(sceneLegT(cfg), "折片左右攤平成 T 型，藍色區域用膠帶貼一圈"))
     },
     {
