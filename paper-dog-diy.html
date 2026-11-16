@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>紙小狗 DIY 互動教學與 A4 展開圖產生器</title>
+  <style>
+    :root {
+      --bg-color: #f4f7fb;
+      --panel-bg: #ffffff;
+      --primary: #3b82f6;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      /* 步驟色塊系統變數 */
+      --zone-paper: #e2e8f0;
+      --zone-fold: #fde047;
+      --zone-cut: #ef4444;
+      --zone-tape: #38bdf8;
+    }
+
+    * { box-sizing: border-box; font-family: "Microsoft JhengHei", "PingFang TC", sans-serif; }
+    body { margin: 0; background: var(--bg-color); color: var(--text-main); }
+
+    /* 頂部標題列 */
+    header {
+      background: #1e293b; color: #fff; padding: 14px 24px;
+      display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;
+    }
+    header h1 { margin: 0; font-size: 1.35rem; }
+    .header-btns { display: flex; gap: 10px; flex-wrap: wrap; }
+    .btn-print, .btn-preview {
+      color: #fff; border: none; padding: 10px 20px;
+      font-size: 1rem; font-weight: bold; border-radius: 8px; cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .btn-print { background: #10b981; box-shadow: 0 2px 6px rgba(16,185,129,0.4); }
+    .btn-print:hover { background: #059669; transform: scale(1.03); }
+    .btn-preview { background: #6366f1; box-shadow: 0 2px 6px rgba(99,102,241,0.4); }
+    .btn-preview:hover { background: #4f46e5; transform: scale(1.03); }
+
+    /* 主版面佈局 */
+    .app-container {
+      display: grid; grid-template-columns: 340px 1fr; gap: 20px;
+      max-width: 1360px; margin: 20px auto; padding: 0 16px;
+    }
+    @media (max-width: 900px) { .app-container { grid-template-columns: 1fr; } }
+
+    .card {
+      background: var(--panel-bg); border-radius: 14px; padding: 18px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    }
+    .card h2 { margin-top: 0; font-size: 1.15rem; border-bottom: 2px solid #f1f5f9; padding-bottom: 8px; }
+
+    /* 左側客製化選單 */
+    .control-group { margin-bottom: 14px; }
+    .control-group label { display: block; font-weight: bold; margin-bottom: 6px; font-size: 0.92rem; }
+    select, input[type="color"] {
+      width: 100%; padding: 8px 10px; border: 2px solid #cbd5e1; border-radius: 8px; font-size: 0.95rem;
+    }
+    .color-row { display: flex; gap: 10px; }
+    .color-row > div { flex: 1; }
+
+    /* 色塊圖例說明 */
+    .legend-box {
+      display: flex; flex-wrap: wrap; gap: 10px; background: #f8fafc;
+      padding: 10px; border-radius: 8px; margin-bottom: 14px; border: 1px solid #e2e8f0;
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.88rem; font-weight: bold; }
+    .swatch { width: 18px; height: 18px; border-radius: 4px; border: 1px solid #94a3b8; }
+
+    /* 右側步驟引導區 */
+    .step-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .step-badge { background: var(--primary); color: #fff; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+    .step-title { margin: 0 0 10px 0; font-size: 1.1rem; }
+    .btn-voice {
+      background: #f59e0b; color: #fff; border: none; padding: 8px 14px;
+      border-radius: 8px; font-weight: bold; cursor: pointer; display: flex; align-items: center; gap: 6px;
+    }
+    .btn-voice:hover { background: #d97706; }
+
+    .diagram-stage {
+      background: #f8fafc; border: 2px dashed #cbd5e1; border-radius: 12px;
+      min-height: 320px; display: flex; justify-content: center; align-items: center; padding: 16px;
+    }
+    .step-instruction {
+      font-size: 1.15rem; line-height: 1.6; background: #eff6ff;
+      padding: 14px; border-left: 5px solid var(--primary); border-radius: 6px; margin: 14px 0;
+    }
+    .step-nav { display: flex; justify-content: space-between; gap: 12px; }
+    .btn-nav {
+      flex: 1; padding: 12px; font-size: 1rem; font-weight: bold; border: none;
+      border-radius: 8px; cursor: pointer; background: #e2e8f0; color: #1e293b;
+    }
+    .btn-nav.primary { background: var(--primary); color: #fff; }
+    .btn-nav:disabled { opacity: 0.4; cursor: not-allowed; }
+
+    /* ===== 列印用 8 頁 A4 實際大小展開圖 ===== */
+    #print-sheet { display: none; }
+    #print-sheet.preview { display: block; max-width: 1360px; margin: 0 auto 30px; padding: 0 16px; }
+    .preview-head p { margin: 6px 0; line-height: 1.6; font-size: 0.95rem; }
+    .sheet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 14px; margin-top: 14px; }
+    .a4 { background: #fff; border: 1px solid #cbd5e1; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }
+    .a4 svg { display: block; width: 100%; height: auto; }
+
+    @page { size: A4; margin: 0; }
+    @media print {
+      body { background: #fff; margin: 0; }
+      header, .app-container, .preview-head { display: none !important; }
+      #print-sheet { display: block !important; max-width: none; margin: 0; padding: 0; }
+      .sheet-grid { display: block; margin: 0; }
+      .a4 {
+        width: 210mm; height: 296.5mm; overflow: hidden;
+        border: none; box-shadow: none; margin: 0;
+        page-break-after: always; break-after: page;
+      }
+      .a4:last-child { page-break-after: auto; break-after: auto; }
+      .a4 svg { width: 210mm; height: 297mm; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h1>🐶 紙小狗 DIY 互動引導與 A4 展開圖產生器</h1>
+  <div class="header-btns">
+    <button class="btn-preview" id="previewBtn" onclick="togglePreview()">👁 預覽 8 頁展開圖</button>
+    <button class="btn-print" onclick="window.print()">🖨️ 列印 8 頁 A4 展開圖</button>
+  </div>
+</header>
+
+<div class="app-container">
+  <!-- 左側：客製化選單 -->
+  <aside class="card">
+    <h2>1. 選擇犬種與外觀客製化</h2>
+
+    <div class="control-group">
+      <label for="breedSelect">選擇受歡迎犬種模板：</label>
+      <select id="breedSelect" onchange="applyBreedPreset()">
+        <option value="dalmatian">大麥町幼犬（經典黑斑點）</option>
+        <option value="bordercollie">邊境牧羊犬（黑白經典臉譜）</option>
+        <option value="beagle">米格魯（三色大垂耳）</option>
+        <option value="husky">哈士奇（藍眼灰白面罩）</option>
+        <option value="stbernard">聖伯納犬（棕白濃眉垂耳）</option>
+        <option value="schnauzer">雪納瑞（灰白濃眉與大鬍子）</option>
+        <option value="whitefluffy">蓬鬆小白狗（原版經典）</option>
+        <option value="dachshund">短腿臘腸犬（長身體＋短腿）</option>
+        <option value="shiba">柴犬（立耳＋經典黃白）</option>
+        <option value="poodle">貴賓犬（圓蓬頭＋泰迪棕）</option>
+        <option value="corgi">柯基犬（大立耳＋短腿）</option>
+        <option value="hachi">動漫風小八（藍白耳＋可愛臉）</option>
+      </select>
+    </div>
+
+    <div class="color-row control-group">
+      <div>
+        <label for="furColor">主毛色：</label>
+        <input type="color" id="furColor" value="#ffffff" oninput="updateAll()" />
+      </div>
+      <div>
+        <label for="accentColor">花紋 / 耳朵色：</label>
+        <input type="color" id="accentColor" value="#1e293b" oninput="updateAll()" />
+      </div>
+    </div>
+
+    <div class="control-group">
+      <label for="eyeSelect">五官：眼睛表情</label>
+      <select id="eyeSelect" onchange="updateAll()">
+        <option value="round">圓滾滾黑豆眼</option>
+        <option value="huskyBlue">帥氣冰藍眼</option>
+        <option value="happy">笑瞇瞇彎彎眼</option>
+        <option value="sparkle">水汪汪大眼睛</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label for="mouthSelect">五官：嘴巴與腮紅</label>
+      <select id="mouthSelect" onchange="updateAll()">
+        <option value="smileBlush">微笑小嘴 ＋ 粉紅腮紅</option>
+        <option value="tongue">吐舌頭俏皮表情</option>
+        <option value="schnauzerBeard">雪納瑞濃密大鬍子</option>
+        <option value="calm">乖巧閉嘴表情</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <label for="accSelect">趣味配飾：</label>
+      <select id="accSelect" onchange="updateAll()">
+        <option value="none">無配飾（原味自然風）</option>
+        <option value="bowtie">紳士紅領結</option>
+        <option value="crown">金色小皇冠</option>
+        <option value="collar">藍色項圈 ＋ 金色鈴鐺</option>
+        <option value="glasses">酷炫黑框墨鏡</option>
+      </select>
+    </div>
+
+    <!-- 即時頭部預覽 -->
+    <div style="text-align:center; background:#f8fafc; padding:10px; border-radius:10px; border:1px solid #e2e8f0;">
+      <div style="font-size:0.85rem; color:#64748b; margin-bottom:4px;">即時造型預覽</div>
+      <div id="miniPreview"></div>
+    </div>
+  </aside>
+
+  <!-- 右側：色塊步驟引導 -->
+  <main class="card">
+    <h2>2. 跟著色塊一步步做（8張 A4 紙標準結構）</h2>
+
+    <!-- 色塊功能圖例 -->
+    <div class="legend-box">
+      <div class="legend-item"><span class="swatch" style="background:var(--zone-paper);"></span>紙張底色</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--zone-fold);"></span>黃色：要摺疊的地方</div>
+      <div class="legend-item"><span class="swatch" style="background:#fff; border:2px dashed var(--zone-cut);"></span>紅色虛線：用剪刀剪</div>
+      <div class="legend-item"><span class="swatch" style="background:var(--zone-tape);"></span>藍色：貼透明膠帶</div>
+    </div>
+
+    <div class="step-header">
+      <span class="step-badge" id="stepCounter">步驟 1 / 7</span>
+      <button class="btn-voice" onclick="speakCurrentStep()">🔊 朗讀這一步</button>
+    </div>
+    <h3 class="step-title" id="stepTitle"></h3>
+
+    <div class="diagram-stage" id="stepDiagram"></div>
+
+    <div class="step-instruction" id="stepText"></div>
+
+    <div class="step-nav">
+      <button class="btn-nav" id="prevBtn" onclick="changeStep(-1)">⬅️ 上一步</button>
+      <button class="btn-nav primary" id="nextBtn" onclick="changeStep(1)">下一步 ➡️</button>
+    </div>
+  </main>
+</div>
+
+<!-- 8 頁 A4 實際大小展開圖（平時隱藏；按「預覽」可在畫面上檢視，列印時每頁一張 A4） -->
+<section id="print-sheet">
+  <div class="card preview-head">
+    <h2 id="printTitle">我的紙小狗 － 8 頁 A4 實際大小展開圖</h2>
+    <p>第 1 頁 頭部 ｜ 第 2 頁 耳朵＋尾巴 ｜ 第 3–4 頁 身體（2 張套疊）｜ 第 5–8 頁 四條腿。</p>
+    <p><b>列印設定：</b>紙張 A4、縮放選「實際大小 / 100%」（不要選「符合頁面」）、邊界選「無」、勾選「背景圖形」。</p>
+  </div>
+  <div id="printSvgContainer"></div>
+</section>
+
+<script>
+  // 1. 犬種預設資料庫（可自由擴充或調整參數）
+  const BREED_PRESETS = {
+    dalmatian:    { name: "大麥町幼犬", fur: "#ffffff", accent: "#1e293b", ear: "floppy", leg: "normal", pattern: "spots",     eye: "round",     mouth: "smileBlush" },
+    bordercollie: { name: "邊境牧羊犬", fur: "#ffffff", accent: "#1e293b", ear: "half",   leg: "normal", pattern: "collie",    eye: "sparkle",   mouth: "tongue" },
+    beagle:       { name: "米格魯",     fur: "#ffffff", accent: "#92400e", ear: "longFlop",leg: "normal",pattern: "beagle",    eye: "round",     mouth: "smileBlush" },
+    husky:        { name: "哈士奇",     fur: "#f1f5f9", accent: "#475569", ear: "pointy", leg: "normal", pattern: "huskyMask", eye: "huskyBlue", mouth: "calm" },
+    stbernard:    { name: "聖伯納犬",   fur: "#ffffff", accent: "#78350f", ear: "longFlop",leg: "normal",pattern: "stbernard", eye: "round",     mouth: "tongue" },
+    schnauzer:    { name: "雪納瑞",     fur: "#94a3b8", accent: "#334155", ear: "folded", leg: "normal", pattern: "schnauzer", eye: "round",     mouth: "schnauzerBeard" },
+    whitefluffy:  { name: "蓬鬆小白狗", fur: "#ffffff", accent: "#f8fafc", ear: "floppy", leg: "normal", pattern: "none",      eye: "round",     mouth: "smileBlush" },
+    dachshund:    { name: "短腿臘腸犬", fur: "#9a3412", accent: "#451a03", ear: "longFlop",leg: "short",  pattern: "none",      eye: "round",     mouth: "smileBlush" },
+    shiba:        { name: "柴犬",       fur: "#f59e0b", accent: "#fef3c7", ear: "pointy", leg: "normal", pattern: "shibaMask", eye: "happy",     mouth: "smileBlush" },
+    poodle:       { name: "貴賓犬",     fur: "#d97706", accent: "#b45309", ear: "floppy", leg: "normal", pattern: "none",      eye: "sparkle",   mouth: "tongue" },
+    corgi:        { name: "柯基犬",     fur: "#ea580c", accent: "#ffffff", ear: "bigPointy",leg: "short", pattern: "shibaMask", eye: "happy",     mouth: "tongue" },
+    hachi:        { name: "動漫風小八", fur: "#ffffff", accent: "#3b82f6", ear: "pointy", leg: "normal", pattern: "hachi",     eye: "sparkle",   mouth: "smileBlush" }
+  };
+
+  // 耳型展開圖規格（單位 mm，原點在左上角；列印頁與步驟圖共用）
+  //   d    = 外輪廓（實線剪下）
+  //   fold = 摺線（黃色虛線，可省略）
+  const EAR_SPECS = {
+    pointy:    { w: 60, h: 90,  d: "M0,90 L30,0 L60,90 Z" },
+    bigPointy: { w: 70, h: 115, d: "M0,115 L35,0 L70,115 Z" },
+    floppy:    { w: 60, h: 95,  d: "M12,0 Q60,0 60,55 Q58,95 30,95 Q0,90 0,40 Q0,4 12,0 Z" },
+    longFlop:  { w: 52, h: 140, d: "M26,0 Q52,0 52,70 Q50,140 26,140 Q2,140 0,70 Q0,0 26,0 Z" },
+    half:      { w: 62, h: 90,  d: "M0,90 L8,30 L30,0 L54,30 L62,90 Z", fold: "M8,30 L54,30" },
+    folded:    { w: 60, h: 70,  d: "M0,70 L6,0 L60,50 Z", fold: "M6,0 L30,60" }
+  };
+
+  const YEL = "#eab308", RED = "#ef4444", BLUE = "#38bdf8";
+  let currentStep = 0;
+  let uidCounter = 0; // 讓每個頭部 SVG 的 clipPath id 唯一
+
+  // 依底色亮度挑選文字顏色
+  function inkOn(hex) {
+    const h = String(hex).replace("#", "");
+    const r = parseInt(h.substr(0, 2), 16), g = parseInt(h.substr(2, 2), 16), b = parseInt(h.substr(4, 2), 16);
+    const lum = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
+    return lum > 0.6 ? "#0f172a" : "#ffffff";
+  }
+
+  // 2. 教學步驟資料（含色塊 SVG 動態生成函數）
+  const STEPS = [
+    {
+      title: "做腿（第 1 步）：把紙摺成長條",
+      text: "拿 1 張印好的腿紙（第 5–8 頁，共 4 張），沿黃色摺線對折、再對折，變成四分之一寬度的長條（黃色區域）。把開口邊緣向內收合，用透明膠帶（藍色區域）封住邊緣。4 條腿都這樣做喔！",
+      render: (cfg) => `
+        <svg width="420" height="220" viewBox="0 0 420 220">
+          <rect x="30" y="30" width="140" height="160" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+          <rect x="30" y="30" width="70" height="160" fill="#fde047" opacity="0.8"/>
+          <line x1="100" y1="20" x2="100" y2="200" stroke="#ca8a04" stroke-width="3" stroke-dasharray="6,4"/>
+          <text x="55" y="115" font-size="14" font-weight="bold">對折再對折</text>
+          <text x="190" y="115" font-size="24">➡️</text>
+          <rect x="240" y="30" width="45" height="${cfg.leg === 'short' ? 110 : 160}" fill="${cfg.fur}" stroke="#334155" stroke-width="2"/>
+          <rect x="275" y="30" width="10" height="${cfg.leg === 'short' ? 110 : 160}" fill="#38bdf8"/>
+          <text x="295" y="110" font-size="13" fill="#0284c7" font-weight="bold">藍色貼膠帶封口</text>
+        </svg>`
+    },
+    {
+      title: "做腿（第 2 步）：剪出黏貼折片與圓圓腳掌",
+      text: "在長條最上方沿紅色虛線從中間剪開，左右兩片折片（黃色區域）朝相反方向摺開，等一下要黏在身體上。底部已經是圓弧形腳掌，貼上藍色膠帶讓腳更挺！",
+      render: (cfg) => `
+        <svg width="420" height="230" viewBox="0 0 420 230">
+          <rect x="160" y="45" width="60" height="${cfg.leg === 'short' ? 110 : 150}" rx="20" fill="${cfg.fur}" stroke="#334155" stroke-width="2"/>
+          <!-- 上方反摺片 -->
+          <rect x="130" y="25" width="60" height="25" fill="#fde047" stroke="#ca8a04" stroke-width="2"/>
+          <rect x="190" y="25" width="60" height="25" fill="#fde047" stroke="#ca8a04" stroke-width="2"/>
+          <line x1="190" y1="20" x2="190" y2="55" stroke="#ef4444" stroke-width="3" stroke-dasharray="5,4"/>
+          <text x="260" y="42" font-size="13" fill="#b45309" font-weight="bold">黃色折片朝相反方向摺</text>
+          <!-- 下方腳掌膠帶 -->
+          <path d="M160 ${cfg.leg === 'short' ? 135 : 175} Q190 ${cfg.leg === 'short' ? 165 : 205} 220 ${cfg.leg === 'short' ? 135 : 175}" fill="#38bdf8" opacity="0.85"/>
+          <text x="235" y="${cfg.leg === 'short' ? 150 : 190}" font-size="13" fill="#0284c7" font-weight="bold">圓弧腳掌貼膠帶</text>
+        </svg>`
+    },
+    {
+      title: "做頭（第 3 步）：摺邊、修圓角與貼臉",
+      text: "拿第 1 頁的頭部紙，沿實線剪下，再沿紅色虛線把四個角修剪成圓弧形。上下兩側各向內摺出一條細窄的黃色折邊，讓頭部有厚度，臉部圖案朝外。",
+      render: (cfg) => `
+        <svg width="420" height="230" viewBox="0 0 420 230">
+          <rect x="40" y="35" width="140" height="160" rx="28" fill="${cfg.fur}" stroke="#334155" stroke-width="2"/>
+          <rect x="40" y="35" width="140" height="18" fill="#fde047" opacity="0.85"/>
+          <rect x="40" y="177" width="140" height="18" fill="#fde047" opacity="0.85"/>
+          <rect x="40" y="35" width="140" height="160" rx="28" fill="none" stroke="#ef4444" stroke-width="3" stroke-dasharray="6,4"/>
+          <text x="200" y="115" font-size="22">➡️</text>
+          <g transform="translate(245, 45)">${buildHeadSVG(cfg, 140, 140)}</g>
+        </svg>`
+    },
+    {
+      title: "做耳朵和尾巴（第 4 步）：對折剪出造型",
+      text: "拿第 2 頁，沿黃色中線對折，再沿實線（紅色虛線示意）剪下左半邊的耳朵和貼著中線的半片尾巴。展開後就是兩片對稱的耳朵和一條完整的葉片形尾巴。",
+      render: (cfg) => {
+        const sp = EAR_SPECS[cfg.ear] || EAR_SPECS.floppy;
+        const s = 110 / sp.h;
+        return `
+        <svg width="420" height="220" viewBox="0 0 420 220">
+          <rect x="50" y="20" width="320" height="160" fill="#e2e8f0" stroke="#64748b" stroke-width="2"/>
+          <line x1="210" y1="20" x2="210" y2="180" stroke="#ca8a04" stroke-width="3" stroke-dasharray="5,5"/>
+          <!-- 耳朵（依犬種耳型） -->
+          <g transform="translate(${100 + (60 - sp.w * s) / 2}, 45) scale(${s})">
+            <path d="${sp.d}" fill="${cfg.accent}" stroke="#ef4444" stroke-width="${3 / s}" stroke-dasharray="${6 / s},${4 / s}" stroke-linejoin="round"/>
+            ${sp.fold ? `<path d="${sp.fold}" fill="none" stroke="#ca8a04" stroke-width="${3 / s}" stroke-dasharray="${5 / s},${3 / s}"/>` : ""}
+          </g>
+          <!-- 半片葉形尾巴（貼著中線） -->
+          <path d="M210 50 Q165 105 210 160" fill="${cfg.accent}" stroke="#ef4444" stroke-width="3" stroke-dasharray="6,4"/>
+          <!-- 對折後的鏡像（虛影） -->
+          <path d="M210 50 Q255 105 210 160" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-dasharray="4,4"/>
+          <text x="95" y="200" font-size="13" font-weight="bold">對折剪出耳朵</text>
+          <text x="175" y="200" font-size="13" font-weight="bold">貼中線剪半片尾巴</text>
+        </svg>`;
+      }
+    },
+    {
+      title: "做身體（第 5 步）：兩張紙套疊增加厚度",
+      text: "拿第 3、4 頁（2 張身體紙），各自沿黃色中線對折後互相套疊夾在一起（黃色區域），讓身體變厚才站得穩！接著在身體最前端的紅圈處戳穿繩小洞，對折後兩個紅圈會重疊。",
+      render: (cfg) => `
+        <svg width="420" height="220" viewBox="0 0 420 220">
+          <rect x="60" y="65" width="${cfg.leg === 'short' ? 290 : 250}" height="95" rx="12" fill="${cfg.fur}" stroke="#334155" stroke-width="2"/>
+          <rect x="70" y="75" width="${cfg.leg === 'short' ? 270 : 230}" height="75" rx="8" fill="#fde047" opacity="0.55" stroke="#ca8a04" stroke-dasharray="5,4"/>
+          <!-- 前端穿繩洞 -->
+          <circle cx="88" cy="112" r="9" fill="#fff" stroke="#ef4444" stroke-width="3" stroke-dasharray="3,2"/>
+          <text x="105" y="117" font-size="14" fill="#dc2626" font-weight="bold">⬅️ 前端戳一個穿繩小洞</text>
+        </svg>`
+    },
+    {
+      title: "組裝四肢與頭部（第 6 步）：注意後腿位置！",
+      text: "把頭黏在穿繩洞的後方，貼上耳朵和尾巴（藍色膠帶區）。身體紙上的藍色虛線方塊就是腿的黏貼位置，後腿已標在偏前處，走路才不會拖地喔！",
+      render: (cfg) => `
+        <svg width="420" height="240" viewBox="0 0 420 240">
+          <!-- 身體 -->
+          <rect x="110" y="85" width="210" height="75" rx="12" fill="${cfg.fur}" stroke="#334155" stroke-width="2"/>
+          <circle cx="128" cy="122" r="7" fill="#fff" stroke="#ef4444" stroke-width="2"/>
+          <!-- 前腿與往前移的後腿 -->
+          <rect x="135" y="155" width="28" height="65" rx="10" fill="${cfg.fur}" stroke="#334155" stroke-width="2"/>
+          <rect x="255" y="155" width="28" height="65" rx="10" fill="${cfg.fur}" stroke="#334155" stroke-width="2"/>
+          <rect x="130" y="150" width="38" height="12" fill="#38bdf8"/>
+          <rect x="250" y="150" width="38" height="12" fill="#38bdf8"/>
+          <text x="235" y="235" font-size="12" fill="#0284c7" font-weight="bold">⬅️ 後腿往前移一點更順！</text>
+          <!-- 尾巴 -->
+          <path d="M320 95 Q365 55 375 85 Q355 110 320 105 Z" fill="${cfg.accent}" stroke="#334155" stroke-width="2"/>
+          <!-- 頭部 -->
+          <g transform="translate(65, 35)">${buildHeadSVG(cfg, 95, 95)}</g>
+        </svg>`
+    },
+    {
+      title: "完成（第 7 步）：穿過牽繩去散步！",
+      text: "把繩子或緞帶穿過身體前端的小洞並打結固定，輕輕往前拉動繩子，你的專屬紙小狗就會擺動四肢陪你散步啦！",
+      render: (cfg) => `
+        <svg width="420" height="230" viewBox="0 0 420 230">
+          <!-- 牽繩 -->
+          <path d="M15 60 Q75 115 135 118" fill="none" stroke="#f59e0b" stroke-width="4"/>
+          <circle cx="15" cy="60" r="6" fill="#f59e0b"/>
+          <text x="15" y="45" font-size="13" fill="#d97706" font-weight="bold">拉動牽繩！</text>
+          <!-- 完整小狗 -->
+          <rect x="120" y="85" width="200" height="72" rx="12" fill="${cfg.fur}" stroke="#334155" stroke-width="2"/>
+          <rect x="145" y="152" width="26" height="62" rx="10" fill="${cfg.fur}" stroke="#334155" stroke-width="2" transform="rotate(-10 145 152)"/>
+          <rect x="255" y="152" width="26" height="62" rx="10" fill="${cfg.fur}" stroke="#334155" stroke-width="2" transform="rotate(12 255 152)"/>
+          <path d="M320 95 Q365 55 375 85 Q355 110 320 105 Z" fill="${cfg.accent}" stroke="#334155" stroke-width="2"/>
+          <g transform="translate(75, 35)">${buildHeadSVG(cfg, 92, 92)}</g>
+        </svg>`
+    }
+  ];
+
+  // 3. 讀取目前客製化狀態
+  function getConfig() {
+    const breedKey = document.getElementById("breedSelect").value;
+    const preset = BREED_PRESETS[breedKey];
+    return {
+      breedKey,
+      breedName: preset.name,
+      fur: document.getElementById("furColor").value,
+      accent: document.getElementById("accentColor").value,
+      ear: preset.ear,
+      leg: preset.leg,
+      pattern: preset.pattern,
+      eye: document.getElementById("eyeSelect").value,
+      mouth: document.getElementById("mouthSelect").value,
+      acc: document.getElementById("accSelect").value
+    };
+  }
+
+  // 套用犬種預設值
+  function applyBreedPreset() {
+    const breedKey = document.getElementById("breedSelect").value;
+    const p = BREED_PRESETS[breedKey];
+    document.getElementById("furColor").value = p.fur;
+    document.getElementById("accentColor").value = p.accent;
+    document.getElementById("eyeSelect").value = p.eye;
+    document.getElementById("mouthSelect").value = p.mouth;
+    updateAll();
+  }
+
+  // 4. 動態繪製狗頭 SVG（包含品種花紋、五官與配飾）
+  //    opts.noEars = true 時不畫耳朵（列印頁的耳朵是獨立零件）
+  function buildHeadSVG(cfg, w, h, opts) {
+    opts = opts || {};
+    const cid = "hc" + (++uidCounter);
+    const A = cfg.accent;
+    let ears = "";
+    if (cfg.ear === "pointy" || cfg.ear === "bigPointy") {
+      const topY = cfg.ear === "bigPointy" ? -28 : -16;
+      ears = `
+        <polygon points="15,25 25,${topY} 45,15" fill="${A}" stroke="#1e293b" stroke-width="2"/>
+        <polygon points="85,25 75,${topY} 55,15" fill="${A}" stroke="#1e293b" stroke-width="2"/>`;
+    } else if (cfg.ear === "longFlop") {
+      ears = `
+        <ellipse cx="10" cy="58" rx="13" ry="34" fill="${A}" stroke="#1e293b" stroke-width="2"/>
+        <ellipse cx="90" cy="58" rx="13" ry="34" fill="${A}" stroke="#1e293b" stroke-width="2"/>`;
+    } else if (cfg.ear === "half") {
+      // 半立耳：耳尖向前摺
+      ears = `
+        <path d="M13,30 L16,10 L26,2 L42,16 L44,30 Z" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M87,30 L84,10 L74,2 L58,16 L56,30 Z" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>`;
+    } else if (cfg.ear === "folded") {
+      // 折耳：小三角向前垂摺
+      ears = `
+        <path d="M12,26 L16,6 L44,18 L40,30 Z" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>
+        <path d="M88,26 L84,6 L56,18 L60,30 Z" fill="${A}" stroke="#1e293b" stroke-width="2" stroke-linejoin="round"/>`;
+    } else {
+      ears = `
+        <ellipse cx="14" cy="42" rx="12" ry="22" fill="${A}" stroke="#1e293b" stroke-width="2"/>
+        <ellipse cx="86" cy="42" rx="12" ry="22" fill="${A}" stroke="#1e293b" stroke-width="2"/>`;
+    }
+    if (opts.noEars) ears = "";
+
+    // 品種特徵花紋（會被裁切在頭部圓角範圍內）
+    let patternSVG = "";
+    if (cfg.pattern === "spots") {
+      patternSVG = `
+        <circle cx="28" cy="30" r="6" fill="${A}"/>
+        <circle cx="72" cy="65" r="7" fill="${A}"/>
+        <circle cx="30" cy="72" r="5" fill="${A}"/>`;
+    } else if (cfg.pattern === "collie" || cfg.pattern === "beagle" || cfg.pattern === "stbernard") {
+      patternSVG = `
+        <path d="M15,20 Q42,20 45,55 L15,65 Z" fill="${A}" opacity="0.9"/>
+        <path d="M85,20 Q58,20 55,55 L85,65 Z" fill="${A}" opacity="0.9"/>`;
+    } else if (cfg.pattern === "huskyMask") {
+      patternSVG = `
+        <path d="M15,15 L85,15 L85,48 Q65,35 50,48 Q35,35 15,48 Z" fill="${A}" opacity="0.85"/>`;
+    } else if (cfg.pattern === "shibaMask") {
+      patternSVG = `
+        <ellipse cx="50" cy="66" rx="32" ry="22" fill="${A}"/>`;
+    } else if (cfg.pattern === "schnauzer") {
+      patternSVG = `
+        <rect x="26" y="33" width="16" height="5" rx="2" fill="#ffffff"/>
+        <rect x="58" y="33" width="16" height="5" rx="2" fill="#ffffff"/>`;
+    } else if (cfg.pattern === "hachi") {
+      patternSVG = `
+        <path d="M22,12 L50,32 L78,12 Z" fill="${A}"/>`;
+    }
+
+    // 眼睛
+    let eyesSVG = "";
+    if (cfg.eye === "huskyBlue") {
+      eyesSVG = `<circle cx="35" cy="46" r="5.5" fill="#38bdf8" stroke="#0f172a" stroke-width="1.5"/>
+                 <circle cx="65" cy="46" r="5.5" fill="#38bdf8" stroke="#0f172a" stroke-width="1.5"/>`;
+    } else if (cfg.eye === "happy") {
+      eyesSVG = `<path d="M28,47 Q35,39 42,47" fill="none" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>
+                 <path d="M58,47 Q65,39 72,47" fill="none" stroke="#0f172a" stroke-width="3" stroke-linecap="round"/>`;
+    } else if (cfg.eye === "sparkle") {
+      eyesSVG = `<circle cx="35" cy="46" r="6" fill="#0f172a"/><circle cx="33" cy="44" r="2" fill="#fff"/>
+                 <circle cx="65" cy="46" r="6" fill="#0f172a"/><circle cx="63" cy="44" r="2" fill="#fff"/>`;
+    } else {
+      eyesSVG = `<circle cx="35" cy="46" r="5" fill="#0f172a"/><circle cx="65" cy="46" r="5" fill="#0f172a"/>`;
+    }
+
+    // 嘴巴與腮紅
+    let mouthSVG = `<ellipse cx="50" cy="58" rx="6" ry="4" fill="#0f172a"/>`;
+    if (cfg.mouth === "smileBlush") {
+      mouthSVG += `
+        <path d="M42,66 Q50,73 58,66" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>
+        <circle cx="25" cy="58" r="6" fill="#fda4af" opacity="0.8"/>
+        <circle cx="75" cy="58" r="6" fill="#fda4af" opacity="0.8"/>`;
+    } else if (cfg.mouth === "tongue") {
+      mouthSVG += `
+        <path d="M42,65 Q50,71 58,65" fill="none" stroke="#0f172a" stroke-width="2.5"/>
+        <path d="M46,68 Q50,79 54,68 Z" fill="#fb7185"/>`;
+    } else if (cfg.mouth === "schnauzerBeard") {
+      mouthSVG = `
+        <path d="M28,58 Q50,52 72,58 L66,82 L50,74 L34,82 Z" fill="#f8fafc" stroke="#cbd5e1" stroke-width="1.5"/>
+        <ellipse cx="50" cy="56" rx="6" ry="4" fill="#0f172a"/>`;
+    } else {
+      mouthSVG += `<line x1="43" y1="67" x2="57" y2="67" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round"/>`;
+    }
+
+    // 配飾
+    let accSVG = "";
+    if (cfg.acc === "bowtie") {
+      accSVG = `<polygon points="36,86 50,92 36,98" fill="#ef4444"/><polygon points="64,86 50,92 64,98" fill="#ef4444"/><circle cx="50" cy="92" r="3" fill="#b91c1c"/>`;
+    } else if (cfg.acc === "crown") {
+      accSVG = `<polygon points="35,14 40,0 50,10 60,0 65,14" fill="#facc15" stroke="#ca8a04" stroke-width="1.5"/>`;
+    } else if (cfg.acc === "collar") {
+      accSVG = `<rect x="26" y="84" width="48" height="7" rx="3" fill="#2563eb"/><circle cx="50" cy="92" r="5" fill="#facc15" stroke="#b45309" stroke-width="1"/>`;
+    } else if (cfg.acc === "glasses") {
+      accSVG = `<rect x="23" y="39" width="22" height="14" rx="3" fill="#0f172a" opacity="0.85"/>
+                <rect x="55" y="39" width="22" height="14" rx="3" fill="#0f172a" opacity="0.85"/>
+                <line x1="45" y1="45" x2="55" y2="45" stroke="#0f172a" stroke-width="3"/>`;
+    }
+
+    return `
+      <svg width="${w}" height="${h}" viewBox="0 -30 100 132">
+        <defs><clipPath id="${cid}"><rect x="15" y="12" width="70" height="75" rx="22"/></clipPath></defs>
+        ${ears}
+        <rect x="15" y="12" width="70" height="75" rx="22" fill="${cfg.fur}"/>
+        <g clip-path="url(#${cid})">${patternSVG}</g>
+        <rect x="15" y="12" width="70" height="75" rx="22" fill="none" stroke="#1e293b" stroke-width="2.5"/>
+        ${eyesSVG}
+        ${mouthSVG}
+        ${accSVG}
+      </svg>`;
+  }
+
+  // 5. 生成 8 頁 A4 實際大小展開圖（座標單位 = mm，viewBox 0 0 210 297）
+  function dash(x1, y1, x2, y2, color, w) {
+    return `<line x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}" stroke="${color}" stroke-width="${w || 0.7}" stroke-dasharray="3,1.8"/>`;
+  }
+
+  function pageFrame(n, title, inner) {
+    return `
+      <section class="a4">
+        <svg viewBox="0 0 210 297" xmlns="http://www.w3.org/2000/svg">
+          <text x="105" y="11" text-anchor="middle" font-size="5.5" font-weight="bold" fill="#0f172a">${title}</text>
+          ${inner}
+          <text x="105" y="293.5" text-anchor="middle" font-size="2.8" fill="#475569">第 ${n} / 8 頁｜實線＝剪下　紅虛線＝剪開　黃虛線＝摺線　藍色＝貼膠帶｜請以 100% 實際大小列印</text>
+        </svg>
+      </section>`;
+  }
+
+  // 第 1 頁：頭部
+  function pageHead(cfg) {
+    return pageFrame(1, `① 頭部（${cfg.breedName}）`, `
+      <rect x="8" y="20" width="194" height="212" rx="40" fill="${cfg.fur}" stroke="#000" stroke-width="0.6"/>
+      ${dash(22, 38, 188, 38, YEL, 0.8)}
+      ${dash(22, 214, 188, 214, YEL, 0.8)}
+      <text x="105" y="35.5" text-anchor="middle" font-size="3.4" fill="${inkOn(cfg.fur)}">↓ 上折邊（向內摺）</text>
+      <text x="105" y="220" text-anchor="middle" font-size="3.4" fill="${inkOn(cfg.fur)}">↑ 下折邊（向內摺）</text>
+      <g transform="translate(41.5,40)">${buildHeadSVG(cfg, 127, 168, { noEars: true })}</g>
+      <g font-size="4" fill="#0f172a">
+        <text x="14" y="246">1. 沿實線外框剪下（四角已是圓弧形）。</text>
+        <text x="14" y="254">2. 黃色虛線＝向內摺的細窄折邊，讓頭部有厚度。</text>
+        <text x="14" y="262">3. 臉朝外；耳朵用第 2 頁剪下的零件貼在臉的左右兩側。</text>
+      </g>`);
+  }
+
+  // 第 2 頁：耳朵（依犬種耳型）＋尾巴
+  function pageEars(cfg) {
+    const sp = EAR_SPECS[cfg.ear] || EAR_SPECS.floppy;
+    const ex = 28, ey = 24, ink = inkOn(cfg.accent);
+    const tailTop = ey + sp.h + 14, tailLen = 100;
+    return pageFrame(2, `② 耳朵與尾巴（${cfg.breedName}）`, `
+      ${dash(105, 18, 105, 288, YEL, 0.8)}
+      <text x="108" y="287" font-size="3.2" fill="#a16207">← 對折線：先沿此線對折再剪</text>
+      <g transform="translate(${ex},${ey})">
+        <path d="${sp.d}" fill="${cfg.accent}" stroke="#000" stroke-width="0.6" stroke-linejoin="round"/>
+        ${sp.fold ? `<path d="${sp.fold}" fill="none" stroke="${YEL}" stroke-width="0.8" stroke-dasharray="3,1.8"/>` : ""}
+        <text x="${sp.w / 2}" y="${sp.h * 0.62}" text-anchor="middle" font-size="5" font-weight="bold" fill="${ink}">耳朵</text>
+      </g>
+      <g transform="translate(${210 - ex},${ey}) scale(-1,1)">
+        <path d="${sp.d}" fill="none" stroke="#94a3b8" stroke-width="0.4" stroke-dasharray="2,1.5" stroke-linejoin="round"/>
+      </g>
+      <text x="110" y="${ey + sp.h + 6}" font-size="3.2" fill="#64748b">（虛線＝對折後的鏡像位置，剪下得左右各 1 片）</text>
+      <path d="M105,${tailTop} Q59,${tailTop + tailLen / 2} 105,${tailTop + tailLen} Z" fill="${cfg.accent}" stroke="#000" stroke-width="0.6" stroke-linejoin="round"/>
+      <path d="M105,${tailTop} Q151,${tailTop + tailLen / 2} 105,${tailTop + tailLen} Z" fill="none" stroke="#94a3b8" stroke-width="0.4" stroke-dasharray="2,1.5"/>
+      <text x="95" y="${tailTop + tailLen / 2 + 2}" text-anchor="middle" font-size="4.5" font-weight="bold" fill="${ink}">尾巴</text>
+      <text x="110" y="${tailTop + tailLen / 2 + 2}" font-size="3.2" fill="#64748b">只剪貼著中線的半片，展開即為完整葉片尾巴</text>`);
+  }
+
+  // 第 3、4 頁：身體（2 張套疊）
+  function pageBody(cfg, k, n) {
+    const L = cfg.leg === "short" ? 268 : 232, y0 = 20, ink = inkOn(cfg.fur);
+    const yF = y0 + L * 0.18, yB = y0 + L * 0.62;
+    const mark = (x, y, label) => `
+      <rect x="${x}" y="${y}" width="26" height="34" fill="${BLUE}" fill-opacity="0.4" stroke="#0284c7" stroke-width="0.5" stroke-dasharray="2,1.5"/>
+      <text x="${x + 13}" y="${y + 19}" text-anchor="middle" font-size="4" font-weight="bold" fill="#0c4a6e">${label}</text>`;
+    return pageFrame(n, `③ 身體 ${k} / 2（兩張套疊）`, `
+      <rect x="8" y="${y0}" width="194" height="${L}" rx="14" fill="${cfg.fur}" stroke="#000" stroke-width="0.6"/>
+      ${dash(105, y0 + 4, 105, y0 + L - 4, YEL, 0.9)}
+      <text x="108" y="${y0 + L / 2}" font-size="3.6" fill="${ink}">← 黃色中線：對折線</text>
+      <circle cx="60" cy="${y0 + 22}" r="4" fill="#fff" stroke="${RED}" stroke-width="0.7" stroke-dasharray="1.5,1"/>
+      <circle cx="150" cy="${y0 + 22}" r="4" fill="#fff" stroke="${RED}" stroke-width="0.7" stroke-dasharray="1.5,1"/>
+      <text x="60" y="${y0 + 33}" text-anchor="middle" font-size="3.4" fill="${ink}">穿繩洞</text>
+      <text x="150" y="${y0 + 33}" text-anchor="middle" font-size="3.4" fill="${ink}">穿繩洞</text>
+      ${mark(10, yF, "前腿")}${mark(174, yF, "前腿")}
+      ${mark(10, yB, "後腿")}${mark(174, yB, "後腿")}
+      <text x="56" y="${y0 + L * 0.42}" text-anchor="middle" font-size="4" fill="${ink}">對折後與另一張身體紙套疊</text>
+      <text x="56" y="${y0 + L * 0.42 + 6}" text-anchor="middle" font-size="3.4" fill="${ink}">紅圈對折後會重疊，一起戳洞</text>
+      <text x="56" y="${y0 + L * 0.8}" text-anchor="middle" font-size="3.4" fill="${ink}">藍色方塊＝腿的黏貼位置（後腿偏前）</text>`);
+  }
+
+  // 第 5–8 頁：腿（每頁 1 條，A4 對折兩次成四分之一寬度長條）
+  function pageLeg(cfg, i, n) {
+    const short = cfg.leg === "short";
+    const L = short ? 150 : 236, y0 = 20, x0 = 8, W = 194, q = W / 4, r = q / 2, yb = y0 + L;
+    const ink = inkOn(cfg.fur);
+    let d = `M${x0},${y0} H${x0 + W} V${yb - r}`;
+    for (let k = 3; k >= 0; k--) d += ` A${r} ${r} 0 0 1 ${x0 + q * k} ${yb - r}`;
+    d += " Z";
+    const flapH = 36;
+    return pageFrame(n, `④ 第 ${i} 條腿（共 4 條）`, `
+      <path d="${d}" fill="${cfg.fur}" stroke="#000" stroke-width="0.6" stroke-linejoin="round"/>
+      <rect x="${x0}" y="${y0}" width="${W}" height="${flapH}" fill="#fde047" fill-opacity="0.45"/>
+      ${dash(x0 + q, y0, x0 + q, yb - r, YEL)}
+      ${dash(x0 + q * 3, y0, x0 + q * 3, yb - r, YEL)}
+      ${dash(x0 + q * 2, y0 + flapH, x0 + q * 2, yb - r, YEL)}
+      <line x1="${x0 + q * 2}" y1="${y0}" x2="${x0 + q * 2}" y2="${y0 + flapH}" stroke="${RED}" stroke-width="0.9" stroke-dasharray="3,1.8"/>
+      ${dash(x0, y0 + flapH, x0 + W, y0 + flapH, YEL)}
+      <text x="${x0 + q * 1.5}" y="${y0 + 18}" text-anchor="middle" font-size="3.6" font-weight="bold" fill="#000">← 折片向左摺</text>
+      <text x="${x0 + q * 3.5}" y="${y0 + 18}" text-anchor="middle" font-size="3.6" font-weight="bold" fill="#000">折片向右摺 →</text>
+      <text x="${x0 + q * 2}" y="${y0 + flapH + 6}" text-anchor="middle" font-size="3" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">紅線：由上往下剪開 ${flapH} mm</text>
+      <rect x="${x0}" y="${yb - r - 14}" width="${W}" height="12" fill="${BLUE}" fill-opacity="0.5"/>
+      <text x="105" y="${yb - r - 5.5}" text-anchor="middle" font-size="3.6" font-weight="bold" fill="#0c4a6e">藍色：貼膠帶（腳掌）</text>
+      <text x="105" y="${y0 + L / 2 + 2}" text-anchor="middle" font-size="6" font-weight="bold" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="2">第 ${i} 條腿</text>
+      <text x="105" y="${y0 + L / 2 + 9}" text-anchor="middle" font-size="3.4" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">先沿黃色虛線對折兩次成長條，再貼膠帶封口</text>`);
+  }
+
+  function buildPrintPages(cfg) {
+    const pages = [pageHead(cfg), pageEars(cfg), pageBody(cfg, 1, 3), pageBody(cfg, 2, 4)];
+    for (let i = 1; i <= 4; i++) pages.push(pageLeg(cfg, i, 4 + i));
+    return `<div class="sheet-grid">${pages.join("")}</div>`;
+  }
+
+  // 6. 步驟切換與畫面刷新
+  function changeStep(delta) {
+    if ("speechSynthesis" in window) window.speechSynthesis.cancel(); // 切換步驟時停止語音
+    currentStep = Math.max(0, Math.min(STEPS.length - 1, currentStep + delta));
+    renderStep(getConfig());
+  }
+
+  function renderStep(cfg) {
+    const step = STEPS[currentStep];
+    document.getElementById("stepCounter").textContent = `步驟 ${currentStep + 1} / ${STEPS.length}`;
+    document.getElementById("stepTitle").textContent = step.title;
+    document.getElementById("stepDiagram").innerHTML = step.render(cfg);
+    document.getElementById("stepText").textContent = step.text;
+    document.getElementById("prevBtn").disabled = currentStep === 0;
+    document.getElementById("nextBtn").disabled = currentStep === STEPS.length - 1;
+  }
+
+  // 造型設定改變時：更新步驟圖、頭部預覽與 8 頁展開圖
+  function updateAll() {
+    const cfg = getConfig();
+    renderStep(cfg);
+    document.getElementById("miniPreview").innerHTML = buildHeadSVG(cfg, 120, 120);
+    document.getElementById("printTitle").textContent = `我的「${cfg.breedName}」紙小狗 － 8 頁 A4 實際大小展開圖`;
+    document.getElementById("printSvgContainer").innerHTML = buildPrintPages(cfg);
+  }
+
+  // 在畫面上預覽 / 關閉預覽 8 頁展開圖
+  function togglePreview() {
+    const sheet = document.getElementById("print-sheet");
+    const btn = document.getElementById("previewBtn");
+    const on = sheet.classList.toggle("preview");
+    btn.textContent = on ? "✖ 關閉預覽" : "👁 預覽 8 頁展開圖";
+    if (on && sheet.scrollIntoView) sheet.scrollIntoView({ behavior: "smooth" });
+  }
+
+  // 7. 按需語音朗讀功能（Web Speech API）
+  function speakCurrentStep() {
+    if (!("speechSynthesis" in window)) {
+      alert("您的瀏覽器不支援語音朗讀功能，建議使用 Chrome 或 Edge 瀏覽器。");
+      return;
+    }
+    window.speechSynthesis.cancel();
+    const step = STEPS[currentStep];
+    const utterance = new SpeechSynthesisUtterance(`${step.title}。${step.text}`);
+    utterance.lang = "zh-TW";
+    utterance.rate = 0.92; // 略微放慢語速，適合兒童聆聽
+    window.speechSynthesis.speak(utterance);
+  }
+
+  // 初始化載入
+  updateAll();
+</script>
+</body>
+</html>
