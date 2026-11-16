@@ -1,8 +1,11 @@
 <!DOCTYPE html>
 <!--
   紙小狗 DIY 互動教學與 A4 展開圖產生器
-  目前版本：v1.11.4（2026-11-16）
+  目前版本：v1.14.0（2026-11-16）
   修改記錄（新到舊；每次修改請同步更新此處與下方 APP_VERSION / CHANGELOG）：
+  1.14.0  (2026-11-16)  頭身比改為頭大身小（參考使用者提供的紙小狗照片）：頭放大 1.35 倍（約 113×121 mm，耳朵同比例放大）；身體平板縮為 120×196 mm、腿縮短（總長 128／短腿 100 mm）；腹面長方形改為橫 48.5×縱 72 mm（腿寬面朝前後），第 1～4 頁與步驟圖同步
+  1.13.0  (2026-11-16)  依影片截圖與使用者說明改變腿的連接方式：身體改為兩張平板背對背上下黏合（不再對折立起）；肚子朝上，腹面（第 4 頁）有 4 個 72×48.5 mm 長方形，腿根部 T 型貼片貼在其上，4 條腿腳尖朝同一方向；步驟 5～7 的說明與立體圖、第 3～4 頁列印頁全部重做
+  1.12.0  (2026-11-16)  步驟 2 圖示參考使用者的 3D 模型重做：兩片折片寬度同長條、鉸鏈在長條上緣，一片朝前、一片朝後；① 向前後兩側分開約 50°（外側彎箭頭），② 折成 90° 攤平成水平 T 型頂板；折片加厚並保留長條右緣膠帶
   1.11.4  (2026-11-16)  步驟 2 圖示嚴格依手稿外觀重畫：① 折片小角度向兩側分開（外側小彎箭頭）；② 兩片折片折成 90°，在長條上端向左右攤平成水平的菱形頂板；去除手稿沒有的腳掌膠帶圈與「90°」記號，保留長條右緣膠帶
   1.11.3  (2026-11-16)  步驟 2 圖示依手稿改為兩張：① 兩片折片向兩側分開（彎箭頭）、② 折成 90° 攤平成 T 型（標示直角）
   1.11.2  (2026-11-16)  步驟 1 說明文字依指定內容修改（④ 改為折片併攏、膠帶沿合併邊緣貼到腳尖附近封邊）
@@ -397,7 +400,7 @@
 <section id="print-sheet">
   <div class="card preview-head">
     <h2 id="printTitle">我的紙小狗 － 8 頁 A4 實際大小展開圖</h2>
-    <p>第 1 頁 頭部 ｜ 第 2 頁 耳朵＋尾巴 ｜ 第 3–4 頁 身體（2 張套疊）｜ 第 5–8 頁 四條腿。</p>
+    <p>第 1 頁 頭部 ｜ 第 2 頁 耳朵＋尾巴 ｜ 第 3–4 頁 身體（上下 2 張黏合）｜ 第 5–8 頁 四條腿。</p>
     <p><b>列印設定：</b>紙張 A4、縮放選「實際大小 / 100%」（不要選「符合頁面」）、邊界選「無」、勾選「背景圖形」。</p>
   </div>
   <div id="printSvgContainer"></div>
@@ -438,6 +441,8 @@
     }
     return d + "Z";
   }
+  // 頭部放大倍率：紙小狗的頭大身小（頭約 113 × 121 mm），耳朵同比例放大
+  const HK = 1.35;
   // 耳型展開圖規格（單位 mm，原點在左上角；列印頁與步驟圖共用）
   //   d    = 外輪廓（實線剪下）
   //   fold = 摺線（黃色虛線，可省略）
@@ -449,10 +454,17 @@
     half:      { w: 43, h: 63,  d: roundedPoly([[0,63],[5.5,21],[21,0],[37.5,21],[43,63]], 8), fold: "M5.5,21 L37.5,21" },
     folded:    { w: 42, h: 49,  d: roundedPoly([[0,49],[4,0],[42,35]], 7), fold: "M4,0 L21,42" }
   };
+  Object.keys(EAR_SPECS).forEach(k => {   // 全部耳型依頭部倍率放大
+    const e = EAR_SPECS[k], f = t => t.replace(/-?\d*\.?\d+/g, m => (+m * HK).toFixed(2));
+    e.w *= HK; e.h *= HK; e.d = f(e.d); if (e.fold) e.fold = f(e.fold);
+  });
 
   // 版本資訊：每次修改請遞增版本號並在 CHANGELOG 最前面新增一筆（同步更新檔案最上方的 HTML 註解）
-  const APP_VERSION = "1.11.4";
+  const APP_VERSION = "1.14.0";
   const CHANGELOG = [
+    { v: "1.14.0", date: "2026-11-16", note: "頭身比改為頭大身小：頭與耳朵放大 1.35 倍；身體平板縮為 120×196 mm、腿縮短；腹面長方形改為 48.5×72 mm，第 1～4 頁與步驟圖同步" },
+    { v: "1.13.0", date: "2026-11-16", note: "腿的連接方式改變：身體改為兩張平板背對背上下黏合；肚子朝上，腹面有 4 個 72×48.5 mm 長方形供腿根 T 型貼片黏貼，4 條腿腳尖朝同一方向；步驟 5～7 與第 3～4 頁重做" },
+    { v: "1.12.0", date: "2026-11-16", note: "步驟 2 圖示參考使用者的 3D 模型重做：兩片折片寬度同長條，一片朝前、一片朝後；① 分開約 50°，② 折成 90° 攤平成水平 T 型頂板；折片加厚" },
     { v: "1.11.4", date: "2026-11-16", note: "步驟 2 圖示嚴格依手稿外觀重畫：① 折片小角度向兩側分開；② 兩片折片折成 90°，在長條上端向左右攤平成水平頂板；去除手稿沒有的腳掌膠帶圈與「90°」記號" },
     { v: "1.11.3", date: "2026-11-16", note: "步驟 2 圖示依手稿改為兩張：① 兩片折片向兩側分開（彎箭頭）、② 折成 90° 攤平成 T 型（標示直角）" },
     { v: "1.11.2", date: "2026-11-16", note: "步驟 1 說明文字依指定內容修改（④ 改為折片併攏、膠帶沿合併邊緣貼到腳尖附近封邊）" },
@@ -644,7 +656,7 @@
     const g = bodyGeom(cfg), legLen = legLenOf(cfg);
     return { g, legLen, stemLen: legLen - 36, q: 48.5, r: 24.25, BH: 97 };
   }
-  const HEAD_W = 84, HEAD_H = 90;
+  const HEAD_W = 84 * HK, HEAD_H = 90 * HK;
   function earPlacement(cfg) {
     const sp = EAR_SPECS[cfg.ear] || EAR_SPECS.floppy;
     const base = flattenPath(sp.d).map(p => [p[0], sp.h - p[1]]);
@@ -666,22 +678,17 @@
       const efr = { o: v3.add(fr.o, v3.sc(uz, -2)), ux: fr.ux, uy: fr.uy };
       earPlacement(cfg).forEach(poly => S.prism(poly, { depth: 1.8, fill: cfg.accent, frame: efr }));
     }
-    S.prism(roundRectPoly(HEAD_W, HEAD_H, 26.4), {
+    S.prism(roundRectPoly(HEAD_W, HEAD_H, 26.4 * HK), {
       depth: 2, fill: cfg.fur, frame: fr, H: HEAD_H,
-      decal: `<g transform="translate(-18,-50.4)">${buildHeadSVG(cfg, 120, 158.4, { noEars: true, sw: 1.8 })}</g>`
+      decal: `<g transform="translate(${-18 * HK},${-50.4 * HK})">${buildHeadSVG(cfg, 120 * HK, 158.4 * HK, { noEars: true, sw: 1.8 })}</g>`
     });
     [[-22, -22], [HEAD_W + 22, -22], [HEAD_W + 22, HEAD_H + 26], [-22, HEAD_H + 26]].forEach(c => S.include(fr, c[0], c[1]));
   }
 
-  // 身體側面的貼圖：花色＋穿繩洞＋腿的黏貼位置（藍色方塊）
-  function bodyDecal(cfg) {
-    const g = bodyGeom(cfg), my = 71;
-    const mark = (u, label) => `<rect x="${u}" y="${my}" width="${g.markH}" height="24" fill="${BLUE}" fill-opacity="0.45" stroke="#0284c7" stroke-width="0.8" stroke-dasharray="3,2"/>
-      <text x="${u + g.markH / 2}" y="${my + 15}" text-anchor="middle" font-size="7" font-weight="bold" fill="#0c4a6e">${label}</text>`;
-    return `${bodyArt(cfg, g.L, 10)}
-      ${mark(g.yF - g.y0, "前腿")}${mark(g.yB - g.y0, "後腿")}
-      <circle cx="${g.holeU}" cy="16" r="4.5" fill="#fff" stroke="${RED}" stroke-width="1" stroke-dasharray="2,1.5"/>
-      <text x="${g.holeU}" y="30" text-anchor="middle" font-size="6.5" font-weight="bold" fill="${inkOn(cfg.fur)}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">穿繩洞</text>`;
+  // 身體平板的貼圖（立體圖用）：頁面座標轉成「長度方向 x、寬度方向 y」
+  function boardDecal(cfg, pg) {
+    const g = bodyGeom(cfg);
+    return `<g transform="matrix(0 -1 1 0 ${-g.y0} ${g.x0 + g.W})">${bodyInner(cfg, pg, true)}</g>`;
   }
 
   // ===== 各步驟的立體圖 =====
@@ -790,19 +797,32 @@
     }
     return S.svg(200);
   }
-  // 腿（手繪步驟 2 ②）：兩片折片折成 90°，在長條上端左右攤平成水平的 T 型頂板；長條右緣保留膠帶
-  function sceneLegT(cfg) {
-    const d = dims(cfg), S = makeScene(-38, 42), q = d.q, h = d.stemLen;
+  // 步驟 2 共用：長條 ＋ 兩片折片（寬＝長條寬 q、長 36 mm，鉸鏈在長條上緣；一片朝前、一片朝後）。
+  // ang＝折片離開長條的角度（①≈50°、②＝90°，即攤平成水平的 T 型頂板）
+  function sceneLegFlaps(cfg, ang, arrows) {
+    const d = dims(cfg), S = makeScene(-38, ang >= 90 ? 36 : 10), q = d.q, h = d.stemLen, T = 7, th = ang * Math.PI / 180;
+    const c = Math.cos(th), sn = Math.sin(th), ORANGE = "#f97316";
+    const flap = (front) => ({   // 朝前（−z）或朝後（+z）
+      depth: 3, fill: front ? "#fde047" : "#fcd34d", stroke: "#ca8a04", sw: 0.6, edgeFill: () => "#eab308",
+      frame: front ? { o: [0, h, T], ux: [1, 0, 0], uy: [0, c, sn] } : { o: [0, h, 0], ux: [1, 0, 0], uy: [0, c, -sn] }
+    });
+    S.prism(rectPoly(0, 0, q, 36), flap(false));
     S.prism(stripPoly(q, h), {
-      depth: 7, fill: cfg.fur, H: h,
+      depth: T, fill: cfg.fur, H: h,
       decal: `<svg x="0" y="0" width="${q}" height="${h}" viewBox="0 36 ${q} ${h}" overflow="hidden">${legArt(cfg, d.legLen)}</svg>`
     });
-    S.prism(jaggedTape(6.5, h - d.r - 3, true), Object.assign({ depth: 8.4, frame: { o: [q - 5, d.r + 3, -0.7], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.4 }, TAPE));
-    // 兩片水平頂板（各 36 mm 長、24.25 mm 寬），向左、向右攤平
-    [[-36, "#fde047"], [0, "#fcd34d"]].forEach(([x0, c]) => S.prism(rectPoly(0, 0, 36, d.r), {
-      depth: 1.6, fill: c, stroke: "#ca8a04", sw: 0.6,
-      frame: { o: [q / 2 + x0, h + 1.6, 3.5 - d.r / 2], ux: [1, 0, 0], uy: [0, 0, 1] }
-    }));
+    S.prism(jaggedTape(6.5, h - d.r - 3, true), Object.assign({ depth: T + 1.4, frame: { o: [q - 5, d.r + 3, -0.7], ux: [1, 0, 0], uy: [0, 1, 0] }, sw: 0.4 }, TAPE));
+    S.prism(rectPoly(0, 0, q, 36), flap(true));
+    if (arrows) {   // 手稿 ①：兩側（前／後）彎箭頭，表示向兩側分開
+      const R = 50;
+      [-1, 1].forEach(sg => {
+        const pts = [];
+        for (let a = 14; a <= 56; a += 7) { const t = a * Math.PI / 180; pts.push([q / 2, h + R * Math.cos(t), T / 2 + sg * R * Math.sin(t)]); }
+        S.line(pts, ORANGE, 2.4);
+        const e = pts[pts.length - 1], b = pts[pts.length - 2], dz = e[2] - b[2], dy = e[1] - b[1], m = Math.hypot(dz, dy), uz = dz / m, uy = dy / m;
+        [0.5, -0.5].forEach(ang2 => { const cc = Math.cos(ang2), ss = Math.sin(ang2); S.line([e, [e[0], e[1] - 9 * (uy * cc + uz * ss), e[2] - 9 * (uz * cc - uy * ss)]], ORANGE, 2.4); });
+      });
+    }
     return S.svg(250);
   }
   // 頭：剪下的臉板
@@ -822,51 +842,59 @@
     S.prism(LEAF(), { depth: 2, fill: cfg.accent, frame: frAt(sp.w * 2 + 30) });
     return S.svg(200);
   }
-  // 身體：兩張對折後套疊（黃邊＝背部摺線，下緣開口＝腹部）
+  // 身體：兩張平板背對背上下黏合（上＝背面花色；下＝腹面）
   function sceneBody(cfg) {
-    const g = bodyGeom(cfg), S = makeScene(-24, 22);
-    S.prism(roundRectPoly(g.L, 97, 10), { depth: 4, fill: shadeHex(cfg.fur, 0.92), frame: { o: [9, -4, -8.5], ux: [1, 0, 0], uy: [0, 1, 0] }, edgeFill: topYellow });
-    S.prism(roundRectPoly(g.L, 97, 10), { depth: 8, fill: cfg.fur, H: 97, frame: { o: [0, 0, -4], ux: [1, 0, 0], uy: [0, 1, 0] }, decal: bodyDecal(cfg), edgeFill: topYellow });
-    return S.svg(200);
+    const g = bodyGeom(cfg), S = makeScene(-30, 30), W = g.W;
+    const fr = (y) => ({ o: [0, y, W / 2], ux: [1, 0, 0], uy: [0, 0, -1] });
+    S.prism(roundRectPoly(g.L, W, 14), { depth: 3, fill: shadeHex(cfg.fur, 0.9), H: W, frame: fr(0), decal: boardDecal(cfg, 1) });
+    S.prism(roundRectPoly(g.L, W, 14), { depth: 3, fill: cfg.fur, H: W, frame: fr(3), decal: boardDecal(cfg, 0) });
+    return S.svg(230);
   }
-  // 組裝：explode＝分解、done＝組好、walk＝穿牽繩走路
+  // 組裝：belly＝肚子朝上貼四條腿、done＝翻回來站好、walk＝穿牽繩走路
   function sceneAssembly(cfg, mode) {
-    const d = dims(cfg), g = d.g, L = g.L, BH = d.BH, q = d.q, r = d.r, stem = d.stemLen, belly = stem;
-    const S = makeScene(35, 20), ex = mode === "explode", walk = mode === "walk";
-    const headOff = ex ? -55 : 0, legZ = ex ? 42 : 0, tailOff = ex ? [34, 24] : [0, 0];
-    const cxs = [g.yF - g.y0 + 36, g.yB - g.y0 + 36];
+    const d = dims(cfg), g = d.g, L = g.L, q = d.q, r = d.r, stem = d.stemLen, T = 6, W = g.W;
+    const up = mode === "belly", walk = mode === "walk";
+    const S = makeScene(35, up ? 32 : 20);
+    const base = up ? 0 : stem;                                   // 平板底面高度
+    const cxs = [g.yF - g.y0 + g.rh / 2, g.yB - g.y0 + g.rh / 2];  // 前腿、後腿沿身體長度的位置
+    const zs = [W / 2 - 6 - q / 2, -(W / 2 - 6 - q / 2)];                                          // 近側／遠側腿的左右位置
     const angNear = walk ? [-12, 14] : [0, 0], angFar = walk ? [12, -10] : [0, 0];
-    const rot = a => { const c = Math.cos(a * Math.PI / 180), s = Math.sin(a * Math.PI / 180); return { ux: [c, s, 0], uy: [-s, c, 0] }; };
+    const rot = a => { const c = Math.cos(a * Math.PI / 180), s = Math.sin(a * Math.PI / 180); return { ux: [0, 0, 1], uy: [-s, c, 0] }; };
     const stemPoly = stripPoly(q, stem).map(p => [p[0] - r, p[1] - stem]);   // 以髖關節為原點向下延伸
-    const stemDecal = sd => `<svg x="${-r}" y="0" width="${q}" height="${stem}" viewBox="0 36 ${q} ${stem}" overflow="hidden">${legArt(cfg, d.legLen, sd)}</svg>`;
+    const stemDecal = sd => `<svg x="0" y="0" width="${q}" height="${stem}" viewBox="0 36 ${q} ${stem}" overflow="hidden">${legArt(cfg, d.legLen, sd)}</svg>`;
     const tapePoly = rectPoly(-r - 0.8, -stem + r + 2, q + 1.6, 12);
-    const legStem = (cx, z, a, sd) => {
-      const f = rot(a), fr = { o: [cx, belly, z], ux: f.ux, uy: f.uy };
-      S.prism(stemPoly, { depth: 6, fill: cfg.fur, frame: fr, H: stem, dorg: [-r, 0], decal: stemDecal(sd) });
-      S.prism(tapePoly, Object.assign({ depth: 7.6, frame: { o: [cx, belly, z - 0.8], ux: f.ux, uy: f.uy }, sw: 0.3 }, TAPE));
+    const hipY = up ? base + T : base;
+    const leg = (cx, z, a, sd) => {
+      const f = up ? { ux: [0, 0, -1], uy: [0, -1, 0] } : rot(a);
+      S.prism(stemPoly, { depth: 6, fill: cfg.fur, frame: { o: [cx + 3, hipY, z], ux: f.ux, uy: f.uy }, H: stem, dorg: [-r, 0], decal: stemDecal(sd) });
+      if (!up) S.prism(tapePoly, Object.assign({ depth: 7.6, frame: { o: [cx + 3.8, hipY, z], ux: f.ux, uy: f.uy }, sw: 0.3 }, TAPE));
     };
-    // 遠側的腿（被身體擋住大半）
-    cxs.forEach((cx, i) => legStem(cx, -10 - legZ, angFar[i], 11 + i));
-    // 尾巴（貼在後端上方）
-    const ta = rot(-35);
-    S.prism(LEAF().map(p => [p[0] - 18.5, p[1]]), { depth: 2, fill: cfg.accent, frame: { o: [L - 4 + tailOff[0], belly + BH - 34 + tailOff[1], -1], ux: ta.ux, uy: ta.uy } });
-    // 身體
-    S.prism(roundRectPoly(L, BH, 10), { depth: 8, fill: cfg.fur, H: BH, frame: { o: [0, belly, -4], ux: [1, 0, 0], uy: [0, 1, 0] }, decal: bodyDecal(cfg), edgeFill: topYellow });
-    // 近側的腿：黃色折片貼在身體側面，腿垂下
-    cxs.forEach((cx, i) => {
-      S.prism(rectPoly(0, 0, 72, 24.25), { depth: 1.6, fill: "#fde047", stroke: "#ca8a04", frame: { o: [cx - 36, belly, 4 + legZ], ux: [1, 0, 0], uy: [0, 1, 0] } });
-      legStem(cx, 4 + legZ, angNear[i], 1 + i);
-    });
-    // 頭（背面貼在身體前端）與耳朵
-    const hy = belly + BH * 0.5 - HEAD_H / 2 + 10;
-    addHead(S, cfg, { o: [headOff, hy, -HEAD_W / 2], ux: [0, 0, 1], uy: [0, 1, 0] }, true);
-    if (ex) {   // 分解圖的對位虛線
-      cxs.forEach(cx => [-36, 36].forEach(dx => S.line([[cx + dx, belly + 24.25, 4 + legZ], [cx + dx, belly + 24.25, 4]], "#0284c7", 1.2, "4,3")));
-      S.line([[headOff, hy + HEAD_H / 2, 0], [0, hy + HEAD_H / 2, 0]], "#0284c7", 1.2, "4,3");
-      S.line([[L - 4 + tailOff[0], belly + BH - 34 + tailOff[1], 0], [L - 4, belly + BH - 34, 0]], "#0284c7", 1.2, "4,3");
+    // T 型貼片：兩片水平板各 36 mm、寬 48.5 mm，貼在腹面長方形上
+    const plates = (cx, z) => [[-36, "#fde047"], [0, "#fcd34d"]].forEach(([dx, c]) => S.prism(rectPoly(0, 0, 36, q), {
+      depth: 1.6, fill: c, stroke: "#ca8a04", sw: 0.5,
+      frame: { o: [cx + dx, up ? base + T + 1.6 : base, z - r], ux: [1, 0, 0], uy: [0, 0, 1] }
+    }));
+    const board = () => {
+      S.prism(roundRectPoly(L, W, 14), { depth: T, fill: shadeHex(cfg.fur, 0.9), H: W, frame: { o: [0, base, W / 2], ux: [1, 0, 0], uy: [0, 0, -1] }, decal: boardDecal(cfg, up ? 1 : 0) });
+    };
+    if (up) {
+      board();
+      cxs.forEach((cx, i) => { plates(cx, zs[0]); plates(cx, zs[1]); });
+      cxs.forEach((cx, i) => leg(cx, zs[1], 0, 11 + i));
+      cxs.forEach((cx, i) => leg(cx, zs[0], 0, 1 + i));
+      S.text([L * 0.5, T + 8, W / 2 + 22], "肚子朝上：腳尖都朝上", 11, "#0369a1");
+      return S.svg(300);
     }
+    cxs.forEach((cx, i) => leg(cx, zs[1], angFar[i], 11 + i));      // 遠側的腿（被身體擋住大半）
+    cxs.forEach(cx => { plates(cx, zs[1]); plates(cx, zs[0]); });   // 貼片在身體底下，先畫（被身體擋住）
+    board();
+    cxs.forEach((cx, i) => leg(cx, zs[0], angNear[i], 1 + i));
+    const top = stem + T;
+    const ta = rot(-35);   // 尾巴貼在後端
+    S.prism(LEAF().map(p => [p[0] - 18.5, p[1]]), { depth: 2, fill: cfg.accent, frame: { o: [L - 4, top + 6, -1], ux: ta.ux, uy: ta.uy } });
+    addHead(S, cfg, { o: [0, top, -HEAD_W / 2], ux: [0, 0, 1], uy: [0, 1, 0] }, true);   // 頭立在身體前端、臉朝前
     if (walk) {   // 牽繩穿過穿繩洞
-      const p0 = [g.holeU, belly + BH - 16, 4.4], c = [-10, belly + BH - 8, 40], p1 = [-95, belly + BH + 12, 75], pts = [];
+      const p0 = [g.holeU, top, 0], c = [-10, top + 30, 30], p1 = [-95, top + 52, 70], pts = [];
       for (let k = 0; k <= 14; k++) { const t = k / 14, u = 1 - t; pts.push([u * u * p0[0] + 2 * u * t * c[0] + t * t * p1[0], u * u * p0[1] + 2 * u * t * c[1] + t * t * p1[1], u * u * p0[2] + 2 * u * t * c[2] + t * t * p1[2]]); }
       S.line(pts, "#f59e0b", 2.8);
       S.dot(p1, 5, "#f59e0b");
@@ -897,10 +925,10 @@
     },
     {
       title: "做腿（第 2 步）：折片攤平成 T 型，貼出圓腳掌",
-      text: "黃色折片區，左右兩片折片朝相反方向攤平，成為貼在身體側面的「腿的貼片」（此區沒有花色，方便黏貼）。將膠帶貼一圈在藍色區域讓腳更挺。",
+      text: "黃色折片區，左右兩片折片朝相反方向攤平，成為貼在身體腹面的「腿的貼片」（此區沒有花色，方便黏貼）。將膠帶貼一圈在藍色區域讓腳更挺。",
       render: (cfg) => flow(
-        fig(sceneLegStrip(cfg, 22, false, true), "① 向兩側分開"), ARROW,
-        fig(sceneLegT(cfg), "② 折成 90°"))
+        fig(sceneLegFlaps(cfg, 42, true), "① 向兩側分開"), ARROW,
+        fig(sceneLegFlaps(cfg, 90, false), "② 折成 90°"))
     },
     {
       title: "做頭（第 3 步）：剪下頭部",
@@ -917,22 +945,22 @@
         fig(sceneEars(cfg), "展開：左右耳各 1 片＋葉片尾巴"))
     },
     {
-      title: "做身體（第 5 步）：兩張紙套疊增加厚度",
-      text: "拿第 3、4 頁（2 張身體紙），各自沿黃色中線對折，再互相套疊（身體變厚才站得穩）。兩張紙的花色刻意不同，看起來更自然。紅圈（穿繩洞）靠近背部、離前端 40 mm，對折後會重疊，一起戳穿；藍色方塊是腿貼片的黏貼位置（沒有花色）。放一個小重物（例如幾枚硬幣用膠帶包好）在身體內，再用膠帶封住腹部下緣，走起來會更順。",
+      title: "做身體（第 5 步）：兩張紙上下黏合",
+      text: "拿第 3、4 頁（2 張身體紙），各自沿外框剪下。兩張背對背、上下黏合（印花色的那面都朝外）：第 3 頁是背面（花色），第 4 頁是腹面（藍色長方形＝腿的黏貼位置）。紅圈（穿繩洞）兩張重疊，一起戳穿。黏合前可在中間夾一個小重物（例如幾枚硬幣用膠帶包好），走起來會更順。",
       render: (cfg) => flow(
-        thumb(bodyInner(cfg), "第 3、4 頁：身體紙 ×2"), ARROW,
-        fig(sceneBody(cfg), "對折、套疊；黃邊＝背部摺線，下緣開口＝腹部"))
+        thumb(bodyInner(cfg, 0), "第 3 頁：背面"), thumb(bodyInner(cfg, 1), "第 4 頁：腹面"), ARROW,
+        fig(sceneBody(cfg), "背對背上下黏合成一塊身體平板"))
     },
     {
-      title: "組裝四肢與頭部（第 6 步）：注意後腿位置！",
-      text: "身體直立擺放，黃色摺線朝上當背部。頭的背面貼在身體前端（穿繩洞在頭的後方），耳朵貼在頭的背面兩側，尾巴貼在後端。把四條腿的黃色貼片用膠帶貼在身體側面的藍色方塊上（左右各前、後一條），腳掌不要太貼地，走路才擺得動。",
+      title: "組裝四肢與頭部（第 6 步）：肚子朝上貼腿",
+      text: "身體腹面（第 4 頁那面）朝上平放。把 4 條腿的 T 型貼片，各貼在腹面的 4 個藍色長方形上（48.5 × 72 mm，左右各前、後 1 條，腿站在黃線上、貼片在黃線前後）。注意 4 條腿的腳尖都朝同一方向（朝上），後腿位置偏前。貼好後把身體翻過來站好，頭的底邊用膠帶貼在身體前端、臉朝前，耳朵貼在頭的背面兩側，尾巴貼在後端。",
       render: (cfg) => flow(
-        fig(sceneAssembly(cfg, "explode"), "分解：各零件對準虛線位置"), ARROW,
-        fig(sceneAssembly(cfg, "done"), "組合完成"))
+        fig(sceneAssembly(cfg, "belly"), "肚子朝上，貼好四條腿"), ARROW,
+        fig(sceneAssembly(cfg, "done"), "翻回來站好，再貼頭、耳朵、尾巴"))
     },
     {
       title: "完成（第 7 步）：穿過牽繩去散步！",
-      text: "把細繩穿過身體前端上方的穿繩洞並打結（繩子綁在頭的上方位置，拉起來最順），另一端依小朋友的身高調整長度。握住繩子慢慢往前走，你的專屬紙小狗就會擺動四肢跟著你散步啦！",
+      text: "把細繩穿過身體前端、頭後方的穿繩洞並打結（拉起來最順），另一端依小朋友的身高調整長度。握住繩子慢慢往前走，你的專屬紙小狗就會擺動四肢跟著你散步啦！",
       render: (cfg) => flow(fig(sceneAssembly(cfg, "walk"), "牽繩穿過穿繩洞，拉動就能走"))
     }
   ];
@@ -1178,8 +1206,8 @@
   // 身體花色：座標 u＝沿身體長度（前→後）、v＝由背部往腹部（0～97）
   function bodyArt(cfg, L, rx, sd) {
     sd = sd || 0;
-    const g = bodyGeom(cfg), uF = g.yF - g.y0, uB = g.yB - g.y0;
-    const noGlue = [{ x0: uF - 4, x1: uF + g.markH + 4, y0: 68, y1: 100 }, { x0: uB - 4, x1: uB + g.markH + 4, y0: 68, y1: 100 }];
+    const g = bodyGeom(cfg);
+    const noGlue = [];   // 背面沒有黏貼處（腿貼在腹面）
     const A = cfg.accent, H = 97, id = "ba" + (++artUid);
     let s = "";
     switch (cfg.pattern) {
@@ -1222,14 +1250,14 @@
 
   // 第 1 頁：頭部（頭形外框＝剪裁線；臉朝外，背面貼在身體前端）
   function headInner(cfg) {
-    const px = (210 - 84) / 2, py = 36;
+    const px = (210 - HEAD_W) / 2, py = 30, ty = Math.round(py + HEAD_H + 30);
     return `
-      <g transform="translate(${px - 18},${py - 50.4})">${buildHeadSVG(cfg, 120, 158.4, { noEars: true, sw: 1.8 })}</g>
+      <g transform="translate(${px - 18 * HK},${py - 50.4 * HK})">${buildHeadSVG(cfg, 120 * HK, 158.4 * HK, { noEars: true, sw: 1.8 })}</g>
       <g font-size="4" fill="#0f172a">
-        <text x="14" y="160">1. 沿黑色外框剪下（四角已是圓弧形，約 84 × 90 mm）。</text>
-        <text x="14" y="168">2. 臉朝外，背面用透明膠帶貼在身體前端（穿繩洞的前方）。</text>
-        <text x="14" y="176">3. 耳朵用第 2 頁剪下的零件，貼在頭的背面左右兩側。</text>
-        <text x="14" y="184">4. 超出外框的配飾（皇冠、吊牌）請沿其輪廓另外剪下，貼在頭上。</text>
+        <text x="14" y="${ty}">1. 沿黑色外框剪下（四角已是圓弧形，約 ${Math.round(HEAD_W)} × ${Math.round(HEAD_H)} mm）。</text>
+        <text x="14" y="${ty + 8}">2. 臉朝外，底邊用透明膠帶貼在身體前端、立起來（穿繩洞在頭的後方）。</text>
+        <text x="14" y="${ty + 16}">3. 耳朵用第 2 頁剪下的零件，貼在頭的背面左右兩側。</text>
+        <text x="14" y="${ty + 24}">4. 超出外框的配飾（皇冠、吊牌）請沿其輪廓另外剪下，貼在頭上。</text>
       </g>`;
   }
 
@@ -1263,38 +1291,45 @@
       <text x="110" y="${tailTop + tailLen / 2 + 2}" font-size="3.2" fill="#64748b">只剪貼著中線的半片，展開即為完整葉片尾巴</text>`;
   }
 
-  // 腿長與身體尺寸；藍色方塊＝腿折片的黏貼位置（沿身體長 72 mm、離腹部邊緣 24 mm）
-  function legLenOf(cfg) { return cfg.leg === "short" ? 110 : 170; }
+  // 腿長與身體尺寸。身體＝兩張平板（上下黏合）；腹面有 4 個長方形（72×48.5 mm）＝腿根部 T 型貼片的黏貼處
+  function legLenOf(cfg) { return cfg.leg === "short" ? 100 : 128; }
   function bodyGeom(cfg) {
-    const L = cfg.leg === "short" ? 268 : 232, y0 = 20;
-    return { L, y0, yF: y0 + L * 0.12, yB: y0 + L * 0.6, markW: 24, markH: 72, holeU: 40 };
+    const L = 196, W = 120, y0 = 20, x0 = (210 - W) / 2, rw = 48.5, rh = 72, yF = y0 + 22;
+    return { L, W, x0, y0, yF, yB: yF + rh + 14, rw, rh, xs: [x0 + 6, x0 + W - 6 - rw], holeU: 12 };
   }
 
-  // 第 3、4 頁：身體（2 張套疊）。左右兩半都印花色（對折後內外都有花紋）
-  function bodyInner(cfg, pg) {
-    const g = bodyGeom(cfg), ink = inkOn(cfg.fur);
+  // 第 3、4 頁：身體平板。pg=0 背面（花色朝外）；pg=1 腹面（4 個腿根長方形）。clean＝不畫說明文字（供立體圖貼圖用）
+  function bodyInner(cfg, pg, clean) {
+    const g = bodyGeom(cfg), ink = inkOn(cfg.fur), hy = g.y0 + g.holeU;
     pg = pg || 0;
-    const artL = bodyArt(cfg, g.L, 0, pg * 2), artR = bodyArt(cfg, g.L, 0, pg * 2 + 1);
+    const halo = `paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6"`, cid = "bodyclip";
+    let art = "";
+    if (pg === 0) {   // 背面：左右兩半花色不同（不鏡射、不重複）
+      art = `<clipPath id="${cid}"><rect x="${g.x0}" y="${g.y0}" width="${g.W}" height="${g.L}" rx="14"/></clipPath><g clip-path="url(#${cid})"><g transform="matrix(0 1 -1 0 105 ${g.y0})">${bodyArt(cfg, g.L, 0, 0)}</g><g transform="matrix(0 1 1 0 105 ${g.y0})">${bodyArt(cfg, g.L, 0, 1)}</g></g>`;
+    }
     const mark = (x, y, label) => `
-      <rect x="${x}" y="${y}" width="${g.markW}" height="${g.markH}" fill="${BLUE}" fill-opacity="0.4" stroke="#0284c7" stroke-width="0.5" stroke-dasharray="2,1.5"/>
-      <text x="${x + g.markW / 2}" y="${y + g.markH / 2 + 1.5}" text-anchor="middle" font-size="4" font-weight="bold" fill="#0c4a6e">${label}</text>`;
-    const hy = g.y0 + g.holeU;
+      <rect x="${x}" y="${y}" width="${g.rw}" height="${g.rh}" fill="${BLUE}" fill-opacity="0.4" stroke="#0284c7" stroke-width="0.6" stroke-dasharray="2,1.5"/>
+      ${dash(x, y + g.rh / 2, x + g.rw, y + g.rh / 2, YEL, 0.8)}
+      <text x="${x + g.rw / 2}" y="${y + g.rh / 2 - 4}" text-anchor="middle" font-size="4.4" font-weight="bold" fill="#0c4a6e">${label}</text>
+      <text x="${x + g.rw / 2}" y="${y + g.rh / 2 + 6}" text-anchor="middle" font-size="2.8" fill="#0c4a6e">${clean ? "" : "貼片在黃線兩側"}</text>`;
+    const marks = pg === 1 ? g.xs.map(x => mark(x, g.yF, "前腿") + mark(x, g.yB, "後腿")).join("") : "";
+    const ny = g.y0 + g.L + 14;
+    const notes = clean ? "" : (pg === 0 ? `
+      <text x="105" y="${ny}" text-anchor="middle" font-size="4.2" fill="#0f172a">背面（花色朝外、朝上）</text>
+      <text x="105" y="${ny + 7}" text-anchor="middle" font-size="3.6" fill="#0f172a">與第 4 頁背對背上下黏合；中間可夾小重物</text>
+      <text x="105" y="${ny + 13}" text-anchor="middle" font-size="3.6" fill="#0f172a">紅圈（穿繩洞）兩張重疊，一起戳穿</text>` : `
+      <text x="105" y="${ny}" text-anchor="middle" font-size="4.2" fill="#0f172a">腹面（黏合後肚子朝上）</text>
+      <text x="105" y="${ny + 7}" text-anchor="middle" font-size="3.6" fill="#0f172a">把 4 條腿的 T 型貼片貼在藍色長方形（48.5 × 72 mm）</text>
+      <text x="105" y="${ny + 13}" text-anchor="middle" font-size="3.6" fill="#0f172a">4 條腿的腳尖都朝同一方向（朝上）；後腿位置偏前</text>`);
     return `
-      <rect x="8" y="${g.y0}" width="194" height="${g.L}" rx="14" fill="${cfg.fur}" stroke="#000" stroke-width="0.6"/>
-      <g transform="matrix(0 1 -1 0 105 ${g.y0})">${artL}</g>
-      <g transform="matrix(0 1 1 0 105 ${g.y0})">${artR}</g>
-      <rect x="8" y="${g.y0}" width="194" height="${g.L}" rx="14" fill="none" stroke="#000" stroke-width="0.6"/>
-      ${dash(105, g.y0 + 4, 105, g.y0 + g.L - 4, YEL, 0.9)}
-      <text x="108" y="${g.y0 + g.L / 2}" font-size="3.6" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">← 黃色中線：對折線</text>
-      <circle cx="89" cy="${hy}" r="4" fill="#fff" stroke="${RED}" stroke-width="0.7" stroke-dasharray="1.5,1"/>
-      <circle cx="121" cy="${hy}" r="4" fill="#fff" stroke="${RED}" stroke-width="0.7" stroke-dasharray="1.5,1"/>
-      <text x="89" y="${hy + 9}" text-anchor="middle" font-size="3.4" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">穿繩洞</text>
-      <text x="121" y="${hy + 9}" text-anchor="middle" font-size="3.4" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">穿繩洞</text>
-      ${mark(10, g.yF, "前腿")}${mark(176, g.yF, "前腿")}
-      ${mark(10, g.yB, "後腿")}${mark(176, g.yB, "後腿")}
-      <text x="105" y="${g.y0 + g.L * 0.42}" text-anchor="middle" font-size="4" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">對折後與另一張身體紙套疊</text>
-      <text x="105" y="${g.y0 + g.L * 0.42 + 6}" text-anchor="middle" font-size="3.4" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">紅圈對折後會重疊，一起戳洞</text>
-      <text x="105" y="${g.y0 + g.L * 0.42 + 12}" text-anchor="middle" font-size="3.4" fill="${ink}" paint-order="stroke" stroke="${cfg.fur}" stroke-width="1.6">藍色方塊＝腿折片的黏貼位置（後腿偏前）</text>`;
+      <rect x="${g.x0}" y="${g.y0}" width="${g.W}" height="${g.L}" rx="14" fill="${cfg.fur}" stroke="#000" stroke-width="0.6"/>
+      ${art}
+      <rect x="${g.x0}" y="${g.y0}" width="${g.W}" height="${g.L}" rx="14" fill="none" stroke="#000" stroke-width="0.6"/>
+      ${marks}
+      <circle cx="105" cy="${hy}" r="4" fill="#fff" stroke="${RED}" stroke-width="0.7" stroke-dasharray="1.5,1"/>
+      ${clean ? "" : `<text x="105" y="${g.y0 - 3}" text-anchor="middle" font-size="3.6" fill="#0f172a">↑ 頭（前端）｜穿繩洞在頭的後方</text>
+      <text x="105" y="${g.y0 + g.L + 6}" text-anchor="middle" font-size="3.6" fill="#0f172a">尾（後端）↓</text>`}
+      ${notes}`;
   }
 
   // 第 5–8 頁：腿（每頁 1 條，A4 對折兩次成四分之一寬度長條；四個區段都印花色）
@@ -1334,8 +1369,8 @@
     const pages = [
       pageFrame(1, `① 頭部（${cfg.breedName}）`, headInner(cfg)),
       pageFrame(2, `② 耳朵與尾巴（${cfg.breedName}）`, earsInner(cfg)),
-      pageFrame(3, "③ 身體 1 / 2（兩張套疊）", bodyInner(cfg, 0)),
-      pageFrame(4, "③ 身體 2 / 2（兩張套疊）", bodyInner(cfg, 1))
+      pageFrame(3, "③ 身體 1 / 2（背面，花色朝外）", bodyInner(cfg, 0)),
+      pageFrame(4, "④ 身體 2 / 2（腹面：貼腿位置）", bodyInner(cfg, 1))
     ];
     for (let i = 1; i <= 4; i++) pages.push(pageFrame(4 + i, `④ 第 ${i} 條腿（共 4 條）`, legInner(cfg, i)));
     return `<div class="sheet-grid">${pages.join("")}</div>`;
